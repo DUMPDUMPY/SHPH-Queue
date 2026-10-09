@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>จอแสดงผลคิว</title>
+<link rel="stylesheet" href="/assets/display.css">
+</head>
+<body>
+<div class="tv" id="tv">
+  <header class="tv-head">
+    <svg class="tv-logo" viewBox="0 0 72 72" aria-hidden="true">
+      <rect x="2" y="2" width="68" height="68" rx="20" fill="#6FD1A9"/>
+      <path d="M29 16h14v13h13v14H43v13H29V43H16V29h13z" fill="#0C1D1A"/>
+    </svg>
+    <div class="tv-org">
+      <small id="orgPrefix">โรงพยาบาลส่งเสริมสุขภาพตำบล</small>
+      <strong id="orgName">&nbsp;</strong>
+    </div>
+    <div class="tv-offline" id="offline" hidden>ขาดการเชื่อมต่อกับเครื่องแม่ข่าย กำลังเชื่อมต่อใหม่…</div>
+    <div class="tv-time">
+      <div class="date" id="tvDate"></div>
+      <div class="clock" id="tvClock">--:--</div>
+    </div>
+  </header>
+
+  <div class="tv-body">
+    <div class="tv-left">
+      <div class="media" id="media">
+        <div class="placeholder" id="placeholder">
+          <div class="ph-kicker" id="phKicker">ยินดีต้อนรับ</div>
+          <div class="ph-name" id="phName"></div>
+          <p>กรุณารอเรียกหมายเลขบัตรคิวของท่าน</p>
+        </div>
+        <div class="unlock" id="unlock" hidden>แตะหน้าจอ หรือกดปุ่ม OK ที่รีโมต เพื่อเปิดเสียงประกาศ</div>
+        <div class="callout" id="callout" aria-live="assertive">
+          <div class="c0" id="cTest" hidden>ทดสอบเสียง</div>
+          <div class="c1">ขอเชิญหมายเลข</div>
+          <div class="c2" id="cNum"></div>
+          <div class="c3" id="cRoom"></div>
+        </div>
+      </div>
+
+      <div class="strips" id="strips">
+        <div class="strip" id="upStrip">
+          <div class="t"><span><b>เตรียมตัว</b> · คิวถัดไป</span></div>
+          <div class="chips" id="upNext"></div>
+        </div>
+        <div class="strip held">
+          <div class="t"><span><b>เรียกแล้วไม่พบ</b> · โปรดติดต่อเจ้าหน้าที่</span><span class="held-meta" id="heldMeta"></span></div>
+          <div class="chips" id="heldTv"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tv-right" id="tvRight"></div>
+  </div>
+
+  <div class="tick" id="tick"><b>ประกาศ</b><div class="run"><span id="tickText"></span></div></div>
+</div>
+<script src="/assets/common.js"></script>
+<script src="/assets/display.js"></script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ห้องตรวจ · เรียกคิว</title>
+<link rel="stylesheet" href="/assets/common.css">
+<style>
+  .chooser { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .chooser a { display: grid; gap: 4px; padding: 18px 20px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+  .chooser a:hover { border-color: var(--green); }
+  .chooser b { font-family: var(--f-display); font-size: 22px; }
+  .chooser span { color: var(--muted); font-size: 13px; }
+
+  .console { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  @media (max-width: 820px) { .console { grid-template-columns: minmax(0, 1fr); } }
+  .c-main { padding: 24px; display: grid; gap: 18px; align-content: start; border-right: 1px solid var(--line); }
+  @media (max-width: 820px) { .c-main { border-right: 0; border-bottom: 1px solid var(--line); } }
+  .c-side { padding: 24px; display: grid; gap: 22px; align-content: start; }
+  .c-side h3 { margin: 0 0 8px; font-family: var(--f-body); font-size: 13px; letter-spacing: .04em; font-weight: 600; color: var(--muted); }
+
+  .now { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .now .lbl { font-size: 13px; letter-spacing: .04em; color: var(--muted); }
+  .now .room { font-family: var(--f-display); font-weight: 700; font-size: 30px; line-height: 1.2; }
+  .now .at { font-size: 13px; color: var(--muted); }
+  .now .big { font-family: var(--f-display); font-weight: 700; font-size: clamp(80px, 12vw, 132px); line-height: .9; font-variant-numeric: tabular-nums; }
+  .now .big.idle { color: var(--line); }
+
+  .next-btn { width: 100%; padding: 20px; flex-direction: column; gap: 2px; border-radius: 16px; }
+  .next-btn .t { font-family: var(--f-display); font-weight: 700; font-size: 28px; display: inline-flex; align-items: center; gap: 10px; }
+  .next-btn .s { font-size: 15px; opacity: .85; }
+  .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .row2 .solo { grid-column: 1 / -1; }
+  @media (max-width: 460px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+  .row2 .btn { padding: 14px; }
+  .undo-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  .speech { font-size: 14px; color: var(--muted); background: var(--card-2); border-radius: 10px; padding: 10px 14px; }
+  .speech q { color: var(--ink); }
+  .specific { display: flex; gap: 8px; }
+  .c-side > * { min-width: 0; }
+  .specific button { flex: none; }
+  .specific input { flex: 1; width: 0; font-family: var(--f-display); font-weight: 600; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stat { display: flex; align-items: baseline; gap: 8px; }
+  .stat b { font-family: var(--f-display); font-size: 34px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 14px; }
+  .roomtabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .roomtabs a { font-size: 13px; text-decoration: none; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 4px 12px; }
+  .roomtabs a[aria-current="page"] { background: var(--ink); color: var(--card); border-color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="topbar"></div>
+<main class="page">
+  <section id="chooserWrap" hidden>
+    <div class="panel">
+      <header><h2>เลือกห้องของเครื่องนี้</h2><p>คั่นหน้า (Bookmark) ห้องที่เลือกไว้ ครั้งต่อไปจะเปิดได้ทันที</p></header>
+      <div class="body"><div class="chooser" id="chooser"></div></div>
+    </div>
+  </section>
+
+  <section id="missing" class="panel" hidden>
+    <div class="body"><h2>ไม่พบห้องนี้ หรือห้องถูกปิดใช้งาน</h2><p><a href="/room">เลือกห้องใหม่</a></p></div>
+  </section>
+
+  <section id="consoleWrap" class="panel" hidden>
+    <header>
+      <div class="roomtabs" id="roomtabs"></div>
+      <p>คีย์ลัด: <b>Space</b> เรียกคิวถัดไป · <b>R</b> เรียกซ้ำ</p>
+    </header>
+    <div class="console">
+      <div class="c-main">
+        <div class="now">
+          <div>
+            <div class="lbl">กำลังให้บริการ</div>
+            <div class="room" id="roomName"></div>
+            <div class="at" id="calledAt"></div>
+          </div>
+          <div class="big" id="current">—</div>
+        </div>
+        <button class="btn primary next-btn" id="bNext" type="button">
+          <span class="t"><span id="bNextLabel">เรียกคิวถัดไป</span> <kbd>Space</kbd></span>
+          <span class="s" id="bNextSub"></span>
+        </button>
+        <div class="row2">
+          <button class="btn" id="bRepeat" type="button">เรียกซ้ำ <kbd>R</kbd></button>
+          <button class="btn warn" id="bSkip" type="button">ไม่มา · พักคิว</button>
+        </div>
+        <div class="row2">
+          <button class="btn go" id="bDonePh" type="button">เสร็จ · ส่งห้องยา</button>
+          <button class="btn" id="bDone" type="button">เสร็จ · ไม่รับยา</button>
+        </div>
+        <div class="undo-line">
+          <button class="linkbtn" id="bUndo" type="button" disabled>ย้อนกลับการกดครั้งล่าสุด</button>
+        </div>
+        <div class="speech" id="speech"></div>
+      </div>
+      <div class="c-side">
+        <div>
+          <h3><label for="spec">เรียกหมายเลขที่ระบุ</label></h3>
+          <form class="specific" id="specForm">
+            <input id="spec" inputmode="numeric" autocomplete="off" placeholder="เช่น 7">
+            <button class="btn" type="submit">เรียก</button>
+          </form>
+        </div>
+        <div id="pharmWrap">
+          <h3>รอรับยา</h3>
+          <div class="pills" id="pharmList"></div>
+        </div>
+        <div>
+          <h3>พักคิว (เรียกแล้วไม่มา)</h3>
+          <div class="pills" id="heldList"></div>
+          <p class="empty" id="heldNote"></p>
+        </div>
+        <div>
+          <h3>วันนี้</h3>
+          <div class="stat"><b id="served">0</b><span>ราย ให้บริการแล้วในห้องนี้</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="/assets/common.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const m = location.pathname.match(/^\/room\/(\d+)/);
+  const roomId = m ? +m[1] : null;
+  let S = null, busy = false;
+
+  Q.topbar('/room');
+
+  const room = () => S && S.rooms.find((r) => r.id === roomId);
+
+  async function run(path, body) {
+    if (busy) return;
+    busy = true;
+    setButtons();
+    await Q.act(() => Q.api(path, body ?? {}));
+    busy = false;
+    setButtons();
+  }
+
+  function setButtons() {
+    const r = room();
+    if (!r) return;
+    const idle = r.current == null;
+    const isPh = r.kind === 'pharmacy';
+    $('bNext').disabled = busy || (isPh && !S.pharmacy.length);
+    $('bRepeat').disabled = busy || idle;
+    $('bSkip').disabled = busy || idle;
+    $('bDone').disabled = busy || idle;
+    $('bDonePh').disabled = busy || idle;
+    $('bUndo').disabled = busy || !r.can_undo;
+  }
+
+  function renderChooser() {
+    $('chooserWrap').hidden = false;
+    const list = S.rooms.filter((r) => r.active);
+    $('chooser').innerHTML = list.length
+      ? list.map((r) => `<a href="/room/${r.id}"><b>${Q.esc(r.name)}</b><span>/room/${r.id} · ${r.kind === 'pharmacy' ? 'ห้องยา' : 'ห้องตรวจ'}</span></a>`).join('')
+      : '<p class="empty">ยังไม่มีห้องที่เปิดใช้งาน ตั้งค่าได้ในหน้าผู้ดูแลระบบ</p>';
+  }
+
+  function render() {
+    Q.topbar('/room', S.config);
+    if (roomId == null) return renderChooser();
+    const r = room();
+    $('missing').hidden = !!(r && r.active);
+    $('consoleWrap').hidden = !(r && r.active);
+    if (!r || !r.active) return;
+
+    document.title = `${r.name} · เรียกคิว`;
+    $('roomtabs').innerHTML = S.rooms.filter((x) => x.active)
+      .map((x) => `<a href="/room/${x.id}"${x.id === r.id ? ' aria-current="page"' : ''}>${Q.esc(x.name)}</a>`).join('');
+    const idle = r.current == null;
+    const isPh = r.kind === 'pharmacy';
+    const phOn = S.config.pharmacy_enabled;
+    $('roomName').textContent = r.name;
+    $('current').textContent = idle ? '—' : r.current;
+    $('current').classList.toggle('idle', idle);
+    $('calledAt').textContent = idle ? 'ยังไม่มีคิวในห้อง' : `เรียกเมื่อ ${Q.hhmm(r.called_at)} น.`;
+    $('bNextLabel').textContent = isPh ? 'เรียกรับยาถัดไป' : 'เรียกคิวถัดไป';
+    $('bNextSub').textContent = isPh
+      ? (S.pharmacy.length ? `หมายเลข ${S.pharmacy[0].number}` : 'ยังไม่มีคิวรอรับยา')
+      : `หมายเลข ${S.next}`;
+
+    // Exam rooms with the pharmacy on choose: send for medicine, or finish without.
+    const twoWay = !isPh && phOn;
+    $('bDonePh').hidden = !twoWay;
+    $('bDone').textContent = isPh ? 'จ่ายยาแล้ว' : twoWay ? 'เสร็จ · ไม่รับยา' : 'เสร็จสิ้น';
+    $('bDone').classList.toggle('solo', !twoWay);
+
+    if (idle) $('speech').textContent = 'กด “เรียกคิวถัดไป” เพื่อเริ่ม';
+    else {
+      $('speech').innerHTML = 'เสียงประกาศ: <q></q>';
+      const words = `ขอเชิญหมายเลข ${Q.thaiNum(r.current)} ${isPh ? 'รับยาที่' : 'ที่'}${r.name.replace(/\d+/g, (d) => ' ' + Q.thaiNum(+d))} ค่ะ`;
+      $('speech').querySelector('q').textContent = words;
+    }
+
+    $('pharmWrap').hidden = !phOn;
+    $('pharmList').innerHTML = S.pharmacy.length
+      ? S.pharmacy.map((w) => isPh
+          ? `<span class="pill"><b>${w.number}</b><button class="btn small" data-call="${w.number}" type="button">เรียก</button></span>`
+          : `<span class="pill plain"><b>${w.number}</b></span>`).join('')
+      : '<span class="empty">ไม่มี</span>';
+
+    const mine = S.held.filter((h) => h.kind === r.kind);
+    $('heldList').innerHTML = mine.length
+      ? mine.map((h) => `<span class="pill"><b>${h.number}</b><small>${Q.ago(h.since)}</small><button class="btn small" data-call="${h.number}" type="button">เรียกกลับ</button></span>`).join('')
+      : '<span class="empty">ไม่มี</span>';
+    $('heldNote').textContent = S.config.held_expire_minutes
+      ? `พักเกิน ${S.config.held_expire_minutes} นาที ระบบจะเอาออกเอง แต่ยังเรียกด้วย “เรียกหมายเลขที่ระบุ” ได้`
+      : '';
+    $('served').textContent = r.served;
+    setButtons();
+  }
+
+  $('bNext').onclick = () => run(`/rooms/${roomId}/next`);
+  $('bRepeat').onclick = () => run(`/rooms/${roomId}/repeat`);
+  $('bSkip').onclick = () => run(`/rooms/${roomId}/skip`);
+  $('bDonePh').onclick = () => run(`/rooms/${roomId}/done`, { pharmacy: true });
+  $('bDone').onclick = () => run(`/rooms/${roomId}/done`, { pharmacy: false });
+  $('bUndo').onclick = () => run(`/rooms/${roomId}/undo`);
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-call]');
+    if (b) run(`/rooms/${roomId}/call`, { number: +b.dataset.call });
+  });
+  $('specForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const n = parseInt($('spec').value, 10);
+    if (!(n >= 1 && n <= 999)) return Q.toast('ใส่หมายเลขให้ถูกต้อง', true);
+    $('spec').value = '';
+    run(`/rooms/${roomId}/call`, { number: n });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (roomId == null || e.repeat || e.target.closest('input, select, textarea, button, a') || document.querySelector('.confirm')) return;
+    if (e.code === 'Space') { e.preventDefault(); if (!$('bNext').disabled) $('bNext').click(); }
+    else if (e.key === 'r' || e.key === 'R' || e.key === 'พ') { if (!$('bRepeat').disabled) $('bRepeat').click(); }
+  });
+
+  // Refresh "x minutes ago" labels.
+  setInterval(() => { if (S) render(); }, 30000);
+
+  Q.connect(roomId == null ? { role: 'room' } : { role: 'room', room: roomId }, {
+    state(st) { S = st; render(); },
+    status: Q.setConn,
+  });
+})();
+</script>
+</body>
+</html>
