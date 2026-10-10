@@ -119,6 +119,9 @@ pub struct MediaItem {
     pub seconds: Option<u32>,
     #[serde(default = "yes")]
     pub enabled: bool,
+    /// Play this video or YouTube clip without sound.
+    #[serde(default)]
+    pub muted: bool,
 }
 
 fn yes() -> bool {

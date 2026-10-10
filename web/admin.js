@@ -230,11 +230,12 @@
         <td><input type="text" data-m="title" value="${Q.esc(m.title || '')}" placeholder="${Q.esc(m.kind === 'youtube' ? m.src : m.src)}"></td>
         <td>${KIND[m.kind] || m.kind}</td>
         <td>${m.kind === 'image' ? `<input type="number" min="3" data-m="seconds" value="${m.seconds ?? ''}" placeholder="${C.image_seconds}">` : '<span class="hint">จนจบ</span>'}</td>
+        <td>${m.kind === 'image' ? '<span class="hint">—</span>' : `<label class="switch"><input type="checkbox" data-m="sound"${m.muted ? '' : ' checked'} aria-label="เปิดเสียงคลิปนี้"></label>`}</td>
         <td><label class="switch"><input type="checkbox" data-m="enabled"${m.enabled ? ' checked' : ''} aria-label="เปิดใช้"></label></td>
         <td class="ops" style="white-space:nowrap"><button class="btn small" data-mm="up" ${i === 0 ? 'disabled' : ''} aria-label="เลื่อนขึ้น">↑</button>
           <button class="btn small" data-mm="down" ${i === list.length - 1 ? 'disabled' : ''} aria-label="เลื่อนลง">↓</button>
           <button class="btn small danger" data-mm="del">ลบ</button></td></tr>`;
-    }).join('') || '<tr><td colspan="6" class="empty" style="padding:16px 18px">ยังไม่มีสื่อ จอจะแสดงชื่อหน่วยงานแทน</td></tr>';
+    }).join('') || '<tr><td colspan="7" class="empty" style="padding:16px 18px">ยังไม่มีสื่อ จอจะแสดงชื่อหน่วยงานแทน</td></tr>';
   }
 
   function mediaFromTable() {
@@ -243,6 +244,8 @@
       const m = list[+tr.dataset.i];
       m.title = tr.querySelector('[data-m=title]').value;
       m.enabled = tr.querySelector('[data-m=enabled]').checked;
+      const sound = tr.querySelector('[data-m=sound]');
+      if (sound) m.muted = !sound.checked;
       const sec = tr.querySelector('[data-m=seconds]');
       if (sec) m.seconds = sec.value === '' ? null : Number(sec.value);
     });

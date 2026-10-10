@@ -3,8 +3,10 @@
 import pathlib
 import shutil
 import struct
+import subprocess
 import zlib
 
+import pytest
 from playwright.sync_api import expect
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -297,3 +299,88 @@ def test_tv_fills_any_screen_size(open_page):
         assert abs(box["width"] / box["height"] - 16 / 9) < 0.01
         assert box["width"] <= w + 1 and box["height"] <= h + 1
         assert max(box["width"] / w, box["height"] / h) > 0.99, "stage should touch two edges"
+
+
+# ---------------------------------------------------------------- Thai text and media sound
+
+
+def _clipped(page, selector):
+    """True when the glyphs (tone marks above, vowels below) reach outside the element's clipping box."""
+    return page.locator(selector).first.evaluate(
+        """el => {
+            const cs = getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            const scale = rect.height / el.offsetHeight;  // the TV stage is CSS-scaled
+            const probe = document.createElement('span');
+            probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+            el.appendChild(probe);
+            const baseline = (probe.getBoundingClientRect().top - rect.top) / scale;
+            probe.remove();
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+            const m = ctx.measureText(el.textContent);
+            return baseline - m.actualBoundingBoxAscent < 0 || baseline + m.actualBoundingBoxDescent > el.offsetHeight;
+        }"""
+    )
+
+
+def test_thai_tone_marks_are_not_clipped_on_tv(open_page, server):
+    server.api("/admin/login", {"password": "admin"})
+    settings = server.api("/admin/settings")
+    cfg = settings["config"]
+    cfg["org_name"] = "บ้านน้ำมวบ"
+    server.api("/admin/config", cfg, method="PUT")
+    server.api("/admin/rooms/1", {"name": "ห้องผู้สูงอายุ ปู่ย่า", "kind": "exam", "enabled": True, "voice_phrase": "room", "voice_number": None}, method="PUT")
+    server.api("/rooms/1/next", {})
+    server.api("/rooms/1/done", {"pharmacy": True})
+    tv = open_page("/display", 1920, 1080)
+    expect(tv.locator("#orgName")).to_have_text("บ้านน้ำมวบ")
+    tv.wait_for_timeout(500)
+    assert not _clipped(tv, "#orgName"), "organisation name loses its tone marks"
+    assert not _clipped(tv, '.card[data-id="1"] .card-name'), "room name loses its tone marks"
+    assert not _clipped(tv, ".card.pharm .card-sub")
+
+
+def _webm(path):
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+    subprocess.run(
+        ["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=green:s=320x180:d=20",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=20", "-shortest", "-c:v", "libvpx", "-c:a", "libvorbis", str(path)],
+        check=True,
+    )
+
+
+def test_media_sound_switch_mutes_one_clip_without_restarting(open_page, tmp_path):
+    clip = tmp_path / "clip.webm"
+    _webm(clip)
+    tv = open_page("/display", 1920, 1080)
+    tv.click("body")
+    a = open_page("/admin")
+    login(a)
+    a.set_input_files("#mediaFiles", str(clip))
+    a.click("#mediaUpload")
+    expect(a.locator("#mediaRows [data-m=sound]")).to_be_checked()
+    video = tv.locator(".layer video")
+    expect(video).to_have_count(1)
+    assert video.evaluate("v => v.muted") is False
+    video.evaluate("v => v.dataset.mark = 'same'")
+
+    a.locator("#mediaRows [data-m=sound]").uncheck()
+    expect(a.locator(".toast").last).to_have_text("บันทึกรายการสื่อแล้ว")
+    tv.wait_for_function("() => document.querySelector('.layer video').muted === true")
+    assert video.evaluate("v => v.dataset.mark") == "same", "the clip kept playing; it was not restarted"
+
+    a.locator("#mediaRows [data-m=sound]").check()
+    tv.wait_for_function("() => document.querySelector('.layer video').muted === false")
+
+
+def test_images_have_no_sound_switch(open_page, tmp_path):
+    a = open_page("/admin")
+    login(a)
+    img = tmp_path / "poster.png"
+    img.write_bytes(png_bytes())
+    a.set_input_files("#mediaFiles", str(img))
+    a.click("#mediaUpload")
+    expect(a.locator("#mediaRows tr[data-i]")).to_have_count(1)
+    expect(a.locator("#mediaRows [data-m=sound]")).to_have_count(0)
