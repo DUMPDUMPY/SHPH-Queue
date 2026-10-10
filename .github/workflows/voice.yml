@@ -1,0 +1,37 @@
+name: voice
+
+# Generates the Thai announcement clips with edge-tts and commits them to voice/.
+# Existing clips are kept; delete a file (or run make_voice.py --force locally) to regenerate it.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - voice/voice_lines.json
+      - tools/make_voice.py
+      - .github/workflows/voice.yml
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "edge-tts>=6.1,<8"
+      - run: python tools/make_voice.py
+      - name: Commit new clips
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add voice/*.mp3
+          if git diff --cached --quiet; then
+            echo "No new clips."
+            exit 0
+          fi
+          echo "Committing $(git diff --cached --name-only | wc -l) clips"
+          git commit -m "Add generated Thai voice clips (th-TH-PremwadeeNeural)"
+          git push origin HEAD:${{ github.ref_name }}

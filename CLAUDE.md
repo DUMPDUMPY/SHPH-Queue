@@ -35,9 +35,11 @@ src/model.rs   Config, Core, Room, Held, Waiting + defaults and sanitize()
 src/thai.rs    Thai number words, clip names, built-in phrases
 web/           pages; common.js/common.css are shared by staff pages, display.* is the TV
 voice/voice_lines.json   clip name -> Thai text. Must match thai::PHRASES and thai::number_clips()
-tools/make_voice.py      generates clips with edge-tts (th-TH-PremwadeeNeural)
+voice/*.mp3              the 118 clips, committed by the `voice` workflow
+tools/make_voice.py      generates clips with edge-tts (th-TH-PremwadeeNeural); skips files that exist
 packaging/     .bat helpers and README-Windows.txt copied into the Windows zip
-.github/workflows/build.yml   cargo test (Linux) -> release build + voice clips + zip (Windows)
+.github/workflows/build.yml   cargo test (Linux) -> release build + zip with voice/*.mp3 (Windows)
+.github/workflows/voice.yml   generates missing clips on Ubuntu and commits them back to the branch
 ```
 
 Runtime files sit next to the exe: `data/queue.db`, `data/media/` (uploads), `voice/` (clips).
@@ -53,7 +55,8 @@ Runtime files sit next to the exe: `data/queue.db`, `data/media/` (uploads), `vo
 ## Working on it
 
 ```bash
-cargo test                                  # queue + Thai number tests
+cargo test                                  # unit tests + tests/api.rs (starts the real binary per test)
+pytest tests/e2e                            # browser tests; needs `cargo build`, pytest and playwright
 cargo run -- --dir ./dev-data --port 8000   # data, media and voice go under ./dev-data
 cargo clippy && cargo fmt                   # rustfmt.toml sets max_width = 120
 cargo build --release                       # ~4.8 MB binary
@@ -61,8 +64,13 @@ cargo build --release                       # ~4.8 MB binary
 
 - In debug builds rust-embed reads `web/` from disk, so a page refresh shows HTML/JS edits without rebuilding. Release builds embed the files.
 - Axum 0.7 route syntax is `/:id` and `/*path`, not `{id}`.
-- To test announcements locally without network TTS, make dummy clips with ffmpeg for every name in `voice/voice_lines.json` into `<dir>/voice/`.
-- Browser checks: Playwright for Python can be pip-installed into the scratchpad, with Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. Launch it with `--autoplay-policy=no-user-gesture-required` for the display.
+- At runtime clips are read from `<dir>/voice/`, not the repo's `voice/`. Copy `voice/*.mp3` there to hear them locally. This container cannot reach the edge-tts service, so new clips come from the `voice` workflow: edit `voice_lines.json`, push, then pull the bot's commit.
+- Tests:
+  - `tests/api.rs` covers every API route, validation, admin auth, uploads, restart persistence, the daily reset and held expiry (by editing the SQLite file between restarts), simultaneous presses and the WebSocket messages.
+  - `tests/e2e/test_ui.py` drives all four pages in Chromium and fails on any console error.
+  - Add a test for each new button or rule.
+- Browser tests in this container: `pip install --target <scratchpad>/pw pytest playwright`, then run `PYTHONPATH=<scratchpad>/pw CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome python3 -m pytest tests/e2e`. Do not run `playwright install`.
+- CI (`build.yml`) runs fmt, clippy with `-D warnings`, `cargo test` and the browser tests. The Windows package job waits for all of them.
 - Stop the dev server with `kill $(pidof shph-queue)`. `pkill -f` with a pattern that also appears in your own command line kills your shell.
 - Python that prints Thai must force UTF-8 output: the Windows runner's console is cp1252. This broke voice generation once.
 
