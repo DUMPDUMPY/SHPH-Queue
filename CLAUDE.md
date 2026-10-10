@@ -35,9 +35,11 @@ src/model.rs   Config, Core, Room, Held, Waiting + defaults and sanitize()
 src/thai.rs    Thai number words, clip names, built-in phrases
 web/           pages; common.js/common.css are shared by staff pages, display.* is the TV
 voice/voice_lines.json   clip name -> Thai text. Must match thai::PHRASES and thai::number_clips()
-tools/make_voice.py      generates clips with edge-tts (th-TH-PremwadeeNeural)
+voice/*.mp3              the 118 clips, committed by the `voice` workflow
+tools/make_voice.py      generates clips with edge-tts (th-TH-PremwadeeNeural); skips files that exist
 packaging/     .bat helpers and README-Windows.txt copied into the Windows zip
-.github/workflows/build.yml   cargo test (Linux) -> release build + voice clips + zip (Windows)
+.github/workflows/build.yml   cargo test (Linux) -> release build + zip with voice/*.mp3 (Windows)
+.github/workflows/voice.yml   generates missing clips on Ubuntu and commits them back to the branch
 ```
 
 Runtime files sit next to the exe: `data/queue.db`, `data/media/` (uploads), `voice/` (clips).
@@ -61,7 +63,7 @@ cargo build --release                       # ~4.8 MB binary
 
 - In debug builds rust-embed reads `web/` from disk, so a page refresh shows HTML/JS edits without rebuilding. Release builds embed the files.
 - Axum 0.7 route syntax is `/:id` and `/*path`, not `{id}`.
-- To test announcements locally without network TTS, make dummy clips with ffmpeg for every name in `voice/voice_lines.json` into `<dir>/voice/`.
+- At runtime clips are read from `<dir>/voice/`, not the repo's `voice/`. Copy `voice/*.mp3` there to hear them locally. This container cannot reach the edge-tts service, so new clips come from the `voice` workflow: edit `voice_lines.json`, push, then pull the bot's commit.
 - Browser checks: Playwright for Python can be pip-installed into the scratchpad, with Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. Launch it with `--autoplay-policy=no-user-gesture-required` for the display.
 - Stop the dev server with `kill $(pidof shph-queue)`. `pkill -f` with a pattern that also appears in your own command line kills your shell.
 - Python that prints Thai must force UTF-8 output: the Windows runner's console is cp1252. This broke voice generation once.
