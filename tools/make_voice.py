@@ -36,6 +36,12 @@ async def make_one(sem, name, text, dest, voice, rate, retries=3):
 
 
 async def main():
+    # Windows consoles default to a legacy code page that cannot print Thai.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=str(ROOT / "voice"), help="folder to write clips to")
     ap.add_argument("--manifest", default=str(ROOT / "voice" / "voice_lines.json"))
