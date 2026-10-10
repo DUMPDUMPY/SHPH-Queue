@@ -36,6 +36,8 @@ jobs:
           python-version: "3.12"
       - run: pip install pytest playwright
       - run: python -m playwright install --with-deps chromium
+      - name: ffmpeg (makes a test video)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Browser tests
         run: python -m pytest tests/e2e -v
 

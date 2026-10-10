@@ -730,3 +730,19 @@ fn every_page_and_asset_is_served() {
     }
     assert_eq!(ureq::get(&s.url("/assets/nope.js")).call().map(|r| r.status()).unwrap_or(404), 404);
 }
+
+#[test]
+fn media_sound_setting_is_saved_per_clip() {
+    let mut s = Server::start();
+    s.login("admin");
+    s.put_config(|c| {
+        c["media"] = json!([
+            { "id": "a", "kind": "youtube", "src": "https://youtu.be/aaaaaaaaaaa", "muted": true },
+            { "id": "b", "kind": "video", "src": "clip.mp4" }
+        ]);
+    });
+    let s = s.restart();
+    let media = s.state()["config"]["media"].clone();
+    assert_eq!(media[0]["muted"], true);
+    assert_eq!(media[1]["muted"], false, "older settings without the field keep sound on");
+}

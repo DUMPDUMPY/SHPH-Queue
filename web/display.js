@@ -197,6 +197,12 @@
       }, 900);
     }
 
+    function applyMute(item) {
+      cur.item = item;
+      try { if (cur.yt) { if (item.muted) cur.yt.mute(); else cur.yt.unMute(); } } catch (e) {}
+      if (cur.video) cur.video.muted = !!item.muted;
+    }
+
     function next(delay) {
       clear();
       timer = setTimeout(() => {
@@ -233,17 +239,23 @@
         v.playsInline = true;
         v.loop = single;
         v.volume = (ducked ? DUCK_VOL : BASE_VOL) / 100;
+        v.muted = !!item.muted;
         v.onended = () => next();
         v.onerror = () => next(2000);
         layer.appendChild(v);
         entry.video = v;
-        v.play().catch(() => { v.muted = true; v.play().catch(() => {}); audio.needUnlock(); });
+        v.play().catch(() => {
+          if (item.muted) return;
+          v.muted = true;
+          v.play().catch(() => {});
+          audio.needUnlock();
+        });
       } else if (item.kind === 'youtube') {
         const { id, list } = parseYT(item.src);
         const holder = document.createElement('div');
         layer.appendChild(holder);
         loadYT().then((YT) => {
-          const vars = { autoplay: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3, disablekb: 1 };
+          const vars = { autoplay: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3, disablekb: 1, mute: item.muted ? 1 : 0 };
           if (list) { vars.listType = 'playlist'; vars.list = list; if (single) vars.loop = 1; }
           entry.yt = new YT.Player(holder, {
             videoId: id || undefined,
@@ -251,7 +263,9 @@
             events: {
               onReady: (e) => {
                 e.target.setVolume(ducked ? DUCK_VOL : BASE_VOL);
+                if (item.muted) e.target.mute();
                 e.target.playVideo();
+                if (item.muted) return;
                 setTimeout(() => {
                   try {
                     if (e.target.getPlayerState() !== YT.PlayerState.PLAYING) { e.target.mute(); e.target.playVideo(); audio.needUnlock(); }
@@ -280,8 +294,13 @@
 
     return {
       setItems(list) {
-        const k = JSON.stringify(list);
-        if (k === key) return;
+        // A sound on/off change alone should not restart the playlist.
+        const k = JSON.stringify(list.map(({ muted, ...rest }) => rest));
+        if (k === key) {
+          items = list.slice();
+          if (cur) applyMute(items.find((m) => m.id === cur.item.id) || cur.item);
+          return;
+        }
         key = k;
         items = list.slice();
         idx = 0;
@@ -295,7 +314,7 @@
         if (cur.video) cur.video.volume = vol / 100;
       },
       unmute() {
-        if (!cur) return;
+        if (!cur || cur.item.muted) return;
         try { if (cur.yt) { cur.yt.unMute(); cur.yt.playVideo(); } } catch (e) {}
         if (cur.video) { cur.video.muted = false; cur.video.play().catch(() => {}); }
       },
