@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>จัดการคิว</title>
+<link rel="stylesheet" href="/assets/common.css">
+<style>
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .sum { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; display: grid; gap: 2px; }
+  .sum span { color: var(--muted); font-size: 13px; }
+  .sum b { font-family: var(--f-display); font-size: 40px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .sum.attn b { color: var(--amber); }
+
+  .tools { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 20px; }
+  .tools form { display: flex; gap: 8px; align-items: end; }
+  .tools input { width: 110px; }
+  .tools .spacer { flex: 1; }
+
+  .rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .rc { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; align-content: start; }
+  .rc.hot { border-color: var(--saffron); box-shadow: 0 0 0 2px var(--saffron) inset; }
+  .rc-head { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
+  .rc-head h3 { font-size: 20px; font-weight: 600; }
+  .rc-head small { display: block; color: var(--muted); font-size: 12px; }
+  .rc-num { font-family: var(--f-display); font-weight: 700; font-size: 56px; line-height: .95; font-variant-numeric: tabular-nums; }
+  .rc-num.idle { color: var(--line); }
+  .rc-btns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .rc-btns .wide { grid-column: 1 / -1; }
+  .rc-btns .btn { padding: 8px 10px; font-size: 14px; }
+  .rc form { display: flex; gap: 6px; }
+  .rc form input { flex: 1; width: 0; }
+  .rc .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 20px; align-items: start; }
+  td.n { font-family: var(--f-display); font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums; }
+  td.acts { white-space: nowrap; text-align: right; }
+  td.acts select { padding: 4px 8px; font-size: 13px; border-radius: 8px; }
+  .expire { color: var(--amber); }
+  .log td:first-child { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="topbar"></div>
+<main class="page">
+  <div class="summary">
+    <div class="sum"><span>เรียกล่าสุด (บัตรคิว)</span><b id="sLast">—</b></div>
+    <div class="sum"><span>คิวถัดไป</span><b id="sNext">—</b></div>
+    <div class="sum attn"><span>พักคิว (ไม่มา)</span><b id="sHeld">0</b></div>
+    <div class="sum"><span>รอรับยา</span><b id="sWait">0</b></div>
+  </div>
+
+  <section class="panel">
+    <header><h2>ตัวนับบัตรคิว</h2><p id="range"></p></header>
+    <div class="body tools">
+      <form id="lastForm">
+        <label class="field"><span>ตั้งเลขล่าสุดที่เรียกไปแล้ว</span><input id="lastInput" type="number" min="0" inputmode="numeric" placeholder="เช่น 20"></label>
+        <button class="btn" type="submit">บันทึก</button>
+      </form>
+      <span class="empty">ใช้เมื่อตัวเลขบนจอไม่ตรงกับบัตรที่แจก ห้องตรวจจะเรียกเลขถัดจากนี้</span>
+      <span class="spacer"></span>
+      <button class="btn danger" id="resetBtn" type="button">เริ่มคิวใหม่</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="rooms" id="rooms"></div>
+  </section>
+
+  <div class="two">
+    <section class="panel">
+      <header><h2>พักคิว · เรียกแล้วไม่มา</h2><p id="heldRule"></p></header>
+      <div class="scroll-x"><table class="list"><thead><tr><th>หมายเลข</th><th>จากห้อง</th><th>พักมาแล้ว</th><th></th></tr></thead><tbody id="heldRows"></tbody></table></div>
+    </section>
+    <section class="panel" id="pharmPanel">
+      <header><h2>รอรับยา</h2><p>เรียงตามลำดับที่ส่งมา</p></header>
+      <div class="scroll-x"><table class="list"><thead><tr><th>หมายเลข</th><th>ส่งจาก</th><th>รอมาแล้ว</th><th></th></tr></thead><tbody id="waitRows"></tbody></table></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <header><h2>บันทึกการทำงานวันนี้</h2><p>60 รายการล่าสุด</p></header>
+    <div class="scroll-x"><table class="list log"><thead><tr><th>เวลา</th><th>ห้อง</th><th>หมายเลข</th><th>รายการ</th></tr></thead><tbody id="logRows"></tbody></table></div>
+  </section>
+</main>
+<script src="/assets/common.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  let S = null, busy = false, lastCalled = null;
+  Q.topbar('/manage');
+
+  async function run(path, body, okMsg) {
+    if (busy) return;
+    busy = true;
+    await Q.act(() => Q.api(path, body ?? {}), okMsg);
+    busy = false;
+  }
+
+  const roomName = (id) => (S.rooms.find((r) => r.id === id) || {}).name || (id ? `ห้อง ${id}` : 'ระบบ');
+  const active = () => S.rooms.filter((r) => r.active);
+
+  function renderRooms() {
+    const phOn = S.config.pharmacy_enabled;
+    $('rooms').innerHTML = active().map((r) => {
+      const idle = r.current == null, isPh = r.kind === 'pharmacy';
+      const finish = isPh
+        ? `<button class="btn go wide" data-act="done" data-id="${r.id}" ${idle ? 'disabled' : ''}>จ่ายยาแล้ว</button>`
+        : phOn
+          ? `<button class="btn go" data-act="done-ph" data-id="${r.id}" ${idle ? 'disabled' : ''}>ส่งห้องยา</button>
+             <button class="btn" data-act="done" data-id="${r.id}" ${idle ? 'disabled' : ''}>ไม่รับยา</button>`
+          : `<button class="btn" data-act="done" data-id="${r.id}" ${idle ? 'disabled' : ''}>เสร็จสิ้น</button>`;
+      const nextDisabled = isPh && !S.pharmacy.length;
+      return `<article class="rc${r.id === lastCalled ? ' hot' : ''}">
+        <div class="rc-head">
+          <div><h3>${Q.esc(r.name)}</h3><small>${isPh ? 'ห้องยา' : 'ห้องตรวจ'} · ให้บริการแล้ว ${r.served} ราย</small></div>
+          <div class="rc-num${idle ? ' idle' : ''}">${idle ? '—' : r.current}</div>
+        </div>
+        <div class="rc-btns">
+          <button class="btn primary wide" data-act="next" data-id="${r.id}" ${nextDisabled ? 'disabled' : ''}>${isPh ? 'เรียกรับยาถัดไป' : `เรียกคิวถัดไป (${S.next})`}</button>
+          <button class="btn" data-act="repeat" data-id="${r.id}" ${idle ? 'disabled' : ''}>เรียกซ้ำ</button>
+          <button class="btn warn" data-act="skip" data-id="${r.id}" ${idle ? 'disabled' : ''}>ไม่มา · พัก</button>
+          ${finish}
+        </div>
+        <form data-id="${r.id}"><input inputmode="numeric" placeholder="เรียกหมายเลข…" aria-label="เรียกหมายเลขที่ ${Q.esc(r.name)}"><button class="btn small" type="submit">เรียก</button></form>
+        <div class="meta"><span>${idle ? 'ว่าง' : 'เรียกเมื่อ ' + Q.hhmm(r.called_at) + ' น.'}</span>
+          <button class="linkbtn" data-act="undo" data-id="${r.id}" ${r.can_undo ? '' : 'disabled'}>ย้อนกลับ</button></div>
+      </article>`;
+    }).join('') || '<p class="empty">ยังไม่มีห้องที่เปิดใช้งาน</p>';
+  }
+
+  function roomOptions(kind) {
+    return active().filter((r) => !kind || r.kind === kind).map((r) => `<option value="${r.id}">${Q.esc(r.name)}</option>`).join('');
+  }
+
+  function renderTables() {
+    const exp = S.config.held_expire_minutes;
+    $('heldRule').textContent = exp ? `เอาออกอัตโนมัติเมื่อพักเกิน ${exp} นาที` : 'เก็บไว้จนจบวัน';
+    $('heldRows').innerHTML = S.held.map((h) => {
+      const left = exp ? Math.max(0, Math.ceil((h.since + exp * 60 - Q.nowSec()) / 60)) : null;
+      return `<tr><td class="n">${h.number}</td><td>${Q.esc(roomName(h.room_id))}</td>
+        <td>${Q.ago(h.since)}${left != null ? ` <small class="expire">(เหลือ ${left} นาที)</small>` : ''}</td>
+        <td class="acts"><select aria-label="ห้องที่จะเรียก">${roomOptions(h.kind) || roomOptions()}</select>
+          <button class="btn small" data-act="recall" data-n="${h.number}">เรียก</button>
+          <button class="btn small danger" data-act="del-held" data-n="${h.number}">ลบ</button></td></tr>`;
+    }).join('') || '<tr><td colspan="4" class="empty">ไม่มีคิวที่พักไว้</td></tr>';
+
+    $('pharmPanel').hidden = !S.config.pharmacy_enabled;
+    const phRooms = roomOptions('pharmacy');
+    $('waitRows').innerHTML = S.pharmacy.map((w) => `<tr><td class="n">${w.number}</td><td>${Q.esc(roomName(w.room_id))}</td><td>${Q.ago(w.since)}</td>
+        <td class="acts">${phRooms ? `<select aria-label="ห้องยา">${phRooms}</select> <button class="btn small" data-act="recall" data-n="${w.number}">เรียก</button>` : ''}
+          <button class="btn small danger" data-act="del-wait" data-n="${w.number}">ลบ</button></td></tr>`).join('')
+      || '<tr><td colspan="4" class="empty">ไม่มีคิวรอรับยา</td></tr>';
+  }
+
+  let logTimer = null;
+  function loadLog() {
+    clearTimeout(logTimer);
+    logTimer = setTimeout(async () => {
+      try {
+        const { events } = await Q.api('/log?limit=60');
+        $('logRows').innerHTML = events.map((e) => `<tr><td>${Q.hhmm(e.ts)}</td><td>${Q.esc(e.room_id ? e.room_name : 'ระบบ')}</td>
+          <td class="num">${e.action === 'reset' ? '' : e.number}</td><td>${Q.esc(Q.ACTIONS[e.action] || e.action)}</td></tr>`).join('')
+          || '<tr><td colspan="4" class="empty">ยังไม่มีรายการวันนี้</td></tr>';
+      } catch (e) { /* shown on next refresh */ }
+    }, 250);
+  }
+
+  function render() {
+    Q.topbar('/manage', S.config);
+    $('sLast').textContent = S.last || '—';
+    $('sNext').textContent = S.next;
+    $('sHeld').textContent = S.held.length;
+    $('sWait').textContent = S.pharmacy.length;
+    $('range').textContent = `บัตรคิวเลข ${S.config.number_min}–${S.config.number_max} ครบแล้ววนกลับ`;
+    $('lastInput').max = S.config.number_max;
+    // Do not redraw the room cards while someone is typing a number into one.
+    const typing = document.activeElement && document.activeElement.closest('.rc form');
+    if (!typing) renderRooms();
+    const picking = document.activeElement && document.activeElement.tagName === 'SELECT';
+    if (!picking) renderTables();
+    loadLog();
+  }
+
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-act]');
+    if (!b || b.disabled) return;
+    const id = b.dataset.id, n = +b.dataset.n;
+    switch (b.dataset.act) {
+      case 'next': return run(`/rooms/${id}/next`);
+      case 'repeat': return run(`/rooms/${id}/repeat`);
+      case 'skip': return run(`/rooms/${id}/skip`);
+      case 'done': return run(`/rooms/${id}/done`, { pharmacy: false });
+      case 'done-ph': return run(`/rooms/${id}/done`, { pharmacy: true });
+      case 'undo': return run(`/rooms/${id}/undo`, {}, 'ย้อนกลับแล้ว');
+      case 'recall': {
+        const sel = b.parentElement.querySelector('select');
+        if (!sel || !sel.value) return Q.toast('ไม่มีห้องที่เปิดใช้งาน', true);
+        return run(`/rooms/${sel.value}/call`, { number: n });
+      }
+      case 'del-held':
+        if (await Q.confirmBox(`ลบหมายเลข ${n} ออกจากพักคิว?`, 'หมายเลขนี้จะหายไปจากจอแสดงผล ยังเรียกได้ด้วยการกรอกหมายเลข', 'ลบ', true))
+          run(`/held/${n}/remove`, {}, `ลบหมายเลข ${n} แล้ว`);
+        return;
+      case 'del-wait':
+        if (await Q.confirmBox(`ลบหมายเลข ${n} ออกจากคิวรอรับยา?`, 'ใช้เมื่อคนไข้รับยาไปแล้ว หรือส่งมาผิด', 'ลบ', true))
+          run(`/pharmacy/${n}/remove`, {}, `ลบหมายเลข ${n} แล้ว`);
+        return;
+    }
+  });
+
+  document.addEventListener('submit', (e) => {
+    const f = e.target.closest('.rc form');
+    if (!f) return;
+    e.preventDefault();
+    const input = f.querySelector('input');
+    const n = parseInt(input.value, 10);
+    if (!(n >= 1 && n <= 999)) return Q.toast('ใส่หมายเลขให้ถูกต้อง', true);
+    input.value = '';
+    input.blur();
+    run(`/rooms/${f.dataset.id}/call`, { number: n });
+  });
+
+  $('lastForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const v = parseInt($('lastInput').value, 10);
+    if (!(v >= 0)) return Q.toast('ใส่ตัวเลข 0 ขึ้นไป', true);
+    if (await Q.confirmBox(`ตั้งเลขล่าสุดเป็น ${v}?`, `ห้องตรวจที่กดเรียกคิวถัดไปจะได้เลข ${v >= S.config.number_max ? S.config.number_min : Math.max(v + 1, S.config.number_min)}`, 'บันทึก')) {
+      $('lastInput').value = '';
+      run('/queue/last', { last: v }, 'บันทึกแล้ว');
+    }
+  });
+
+  $('resetBtn').addEventListener('click', async () => {
+    if (await Q.confirmBox('เริ่มคิวใหม่ทั้งหมด?', 'เลขคิวจะเริ่มนับใหม่ ทุกห้องจะว่าง และพักคิวกับคิวรอรับยาจะถูกล้าง ปกติระบบทำให้เองทุกเช้า', 'เริ่มคิวใหม่', true))
+      run('/queue/reset', {}, 'เริ่มคิวใหม่แล้ว');
+  });
+
+  setInterval(() => { if (S) renderTables(); }, 30000);
+
+  Q.connect({ role: 'manage' }, {
+    state(st) { S = st; render(); },
+    call(c) { if (!c.test) { lastCalled = c.room_id; if (S) renderRooms(); } },
+    status: Q.setConn,
+  });
+})();
+</script>
+</body>
+</html>

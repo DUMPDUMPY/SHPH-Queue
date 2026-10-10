@@ -1,0 +1,25 @@
+[package]
+name = "shph-queue"
+version = "0.1.0"
+edition = "2021"
+description = "ระบบเรียกคิวสำหรับ รพ.สต. (Health-promoting hospital queue caller)"
+
+[dependencies]
+axum = { version = "0.7.9", features = ["ws", "multipart"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "sync", "signal", "fs"] }
+tower-http = { version = "0.6", features = ["fs"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+rust-embed = "8"
+mime_guess = "2"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+sha2 = "0.10"
+rand = "0.8"
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true

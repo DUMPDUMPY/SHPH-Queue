@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ผู้ดูแลระบบ · ระบบเรียกคิว</title>
+<link rel="stylesheet" href="/assets/common.css">
+<style>
+  .login { max-width: 380px; margin: 8vh auto 0; }
+  .login form { display: grid; gap: 14px; }
+  .login p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+  .side { position: sticky; top: 12px; display: grid; gap: 2px; }
+  @media (max-width: 860px) { .side { position: static; display: flex; flex-wrap: wrap; gap: 6px; } }
+  .side a { text-decoration: none; color: var(--ink); padding: 8px 12px; border-radius: 8px; font-size: 15px; }
+  .side a:hover { background: var(--card-2); }
+  .side a[aria-current="true"] { background: var(--ink); color: var(--card); }
+  .side .out { margin-top: 10px; }
+  .content { display: grid; gap: 20px; min-width: 0; }
+  .content > section { scroll-margin-top: 12px; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px 18px; }
+  .stack { display: grid; gap: 14px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; padding-top: 6px; }
+  .note { background: var(--amber-soft); color: var(--amber); border: 1px solid #E9C98D; border-radius: 12px; padding: 12px 16px; font-size: 14px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 0; }
+
+  .links { display: grid; gap: 6px; }
+  .links div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .links div:last-child { border-bottom: 0; }
+  .links b { min-width: 120px; font-weight: 600; }
+  .links code { font-family: ui-monospace, Consolas, monospace; font-size: 14px; background: var(--card-2); padding: 3px 8px; border-radius: 6px; user-select: all; overflow-wrap: anywhere; }
+
+  .bars { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; align-items: end; height: 120px; padding-top: 18px; }
+  .bars div { position: relative; background: var(--green); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .bars div.zero { background: var(--line); }
+  .bars div span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hours { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; font-size: 10px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+
+  table.rooms-edit input[type=text] { width: 100%; min-width: 130px; }
+  table.rooms-edit input[type=number] { width: 72px; }
+  table.rooms-edit td.ops { white-space: nowrap; }
+  .media-row td:first-child { width: 68px; }
+  .thumb { width: 64px; height: 40px; border-radius: 6px; background: var(--card-2); display: grid; place-items: center; font-size: 11px; color: var(--muted); overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .media-row input[type=number] { width: 70px; }
+  .addrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+  .addrow input[type=url] { flex: 1; min-width: 220px; }
+  .voice-sum { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: baseline; }
+  .voice-sum b { font-family: var(--f-display); font-size: 28px; }
+  .missing { display: flex; flex-wrap: wrap; gap: 6px; }
+  .missing span { font-size: 12px; background: var(--red-soft); color: var(--red); padding: 2px 8px; border-radius: 6px; }
+  details summary { cursor: pointer; color: var(--green); font-size: 14px; }
+  .ok { color: var(--green); }
+  .bad { color: var(--red); }
+</style>
+</head>
+<body>
+<div class="topbar"></div>
+<main class="page">
+  <section class="panel login" id="login" hidden>
+    <header><h2>เข้าสู่ระบบผู้ดูแล</h2></header>
+    <div class="body">
+      <form id="loginForm">
+        <label class="field"><span>รหัสผ่าน</span><input type="password" id="pw" autocomplete="current-password" required></label>
+        <button class="btn primary" type="submit">เข้าสู่ระบบ</button>
+        <p>ติดตั้งครั้งแรก รหัสผ่านคือ <b>admin</b> เข้าแล้วกรุณาเปลี่ยนทันที</p>
+      </form>
+    </div>
+  </section>
+
+  <div class="layout" id="app" hidden>
+    <nav class="side" id="side">
+      <a href="#overview">ภาพรวม</a>
+      <a href="#rooms">ห้องบริการ</a>
+      <a href="#queue">เลขคิว</a>
+      <a href="#sound">เสียงประกาศ</a>
+      <a href="#screen">จอแสดงผล</a>
+      <a href="#password">รหัสผ่าน</a>
+      <button class="btn small out" id="logout" type="button">ออกจากระบบ</button>
+    </nav>
+
+    <div class="content">
+      <div class="note" id="defaultPw" hidden>ยังใช้รหัสผ่านเริ่มต้นอยู่ กรุณาเปลี่ยนที่หัวข้อ <a href="#password">รหัสผ่าน</a></div>
+
+      <!-- overview -->
+      <section class="panel" id="overview">
+        <header><h2>ภาพรวม</h2><p id="version"></p></header>
+        <div class="body stack">
+          <div>
+            <h3 class="hint" style="margin-bottom:6px">ที่อยู่สำหรับเปิดจากเครื่องอื่นในวง LAN</h3>
+            <div class="links" id="links"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>สถิติวันนี้</h2><p id="statDay"></p></header>
+        <div class="body stack">
+          <div class="scroll-x"><table class="list"><thead><tr><th>ห้อง</th><th>เรียก</th><th>เสร็จ</th><th>ส่งห้องยา</th><th>ไม่มา</th></tr></thead><tbody id="statRows"></tbody></table></div>
+          <div>
+            <h3 class="hint">จำนวนการเรียกคิวแต่ละชั่วโมง</h3>
+            <div class="bars" id="bars"></div>
+            <div class="hours" id="hours"></div>
+          </div>
+          <p class="hint" id="expired"></p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>อุปกรณ์ที่เชื่อมต่ออยู่</h2><button class="btn small" id="refreshClients" type="button">รีเฟรช</button></header>
+        <div class="scroll-x"><table class="list"><thead><tr><th>หน้า</th><th>ห้อง</th><th>IP เครื่อง</th><th>เชื่อมต่อเมื่อ</th></tr></thead><tbody id="clientRows"></tbody></table></div>
+        <div class="body stack">
+          <p class="hint">ข้อมูลเก็บไว้ที่ <code id="dataDir"></code></p>
+          <div class="actions" style="justify-content:flex-start">
+            <a class="btn" href="/api/admin/backup">ดาวน์โหลดไฟล์สำรองข้อมูล</a>
+            <span class="hint">ไฟล์ .db นำไปวางแทน data\queue.db เพื่อกู้คืน (ปิดโปรแกรมก่อน)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- rooms -->
+      <section class="panel" id="rooms">
+        <header><h2>ห้องบริการ</h2><p>ห้องตรวจเรียกเลขจากบัตรคิว ห้องยาเรียกเลขที่ห้องตรวจส่งมา</p></header>
+        <div class="body stack">
+          <label class="switch"><input type="checkbox" id="pharmacyOn"> เปิดใช้ห้องยา (ห้องตรวจจะมีปุ่ม “ส่งห้องยา”)</label>
+          <div class="scroll-x">
+            <table class="list rooms-edit">
+              <thead><tr><th>ลำดับ</th><th>ชื่อห้อง (แสดงบนจอ)</th><th>ประเภท</th><th>เปิดใช้</th><th>เสียงประกาศ</th><th>เลขห้อง (เสียง)</th><th></th></tr></thead>
+              <tbody id="roomRows"></tbody>
+            </table>
+          </div>
+          <p class="hint">“เลขห้อง (เสียง)” คือเลขที่อ่านต่อท้าย เช่น ที่ห้องตรวจ <b>สอง</b> เว้นว่างได้ เช่น ห้องยามีห้องเดียว</p>
+          <form class="addrow" id="addRoom">
+            <label class="field"><span>ชื่อห้องใหม่</span><input type="text" id="newName" placeholder="เช่น ห้องตรวจ 4" required></label>
+            <label class="field"><span>ประเภท</span><select id="newKind"><option value="exam">ห้องตรวจ</option><option value="pharmacy">ห้องยา</option></select></label>
+            <button class="btn primary" type="submit">เพิ่มห้อง</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- queue -->
+      <section class="panel" id="queue">
+        <header><h2>เลขคิว</h2><p>ตั้งให้ตรงกับบัตรคิวกระดาษที่มีอยู่</p></header>
+        <div class="body stack" data-section>
+          <div class="grid2">
+            <label class="field"><span>เลขแรกของบัตรคิว</span><input type="number" min="1" data-k="number_min"></label>
+            <label class="field"><span>เลขสุดท้ายของบัตรคิว</span><input type="number" min="2" data-k="number_max"><small>ถึงเลขนี้แล้ววนกลับไปเลขแรก</small></label>
+            <label class="field"><span>เอาคิวที่ไม่มาออกจากจอเมื่อพักเกิน (นาที)</span><input type="number" min="0" data-k="held_expire_minutes"><small>ใส่ 0 = เก็บไว้จนจบวัน</small></label>
+            <label class="field"><span>จำนวนเลข “เตรียมตัว” บนจอ</span><select data-k="upcoming_count" data-type="number"><option value="0">ไม่แสดง</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+          </div>
+          <label class="switch"><input type="checkbox" data-k="auto_reset_daily"> เริ่มคิวใหม่อัตโนมัติเมื่อขึ้นวันใหม่</label>
+          <div class="actions"><button class="btn primary" data-save type="button">บันทึก</button></div>
+        </div>
+      </section>
+
+      <!-- sound -->
+      <section class="panel" id="sound">
+        <header><h2>เสียงประกาศ</h2><p>เล่นที่จอแสดงผล</p></header>
+        <div class="body stack" data-section>
+          <label class="switch"><input type="checkbox" data-k="sound.enabled"> เปิดเสียงประกาศ</label>
+          <div class="grid2">
+            <label class="field"><span>ประกาศซ้ำ (ครั้ง)</span><select data-k="sound.repeat" data-type="number"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+            <label class="field"><span>เว้นระหว่างรอบ (วินาที)</span><input type="number" min="0" max="10" step="0.5" data-k="sound.gap_seconds"></label>
+            <label class="field"><span>ความดัง (0–100)</span><input type="number" min="0" max="100" data-k="sound.volume"></label>
+          </div>
+          <label class="switch"><input type="checkbox" data-k="sound.chime"> มีเสียง “ติ๊ง-ต่อง” ก่อนประกาศ</label>
+          <label class="switch"><input type="checkbox" data-k="sound.browser_tts_fallback"> ถ้าไฟล์เสียงไม่ครบ ใช้เสียงอ่านภาษาไทยของเบราว์เซอร์แทน</label>
+          <div class="actions"><button class="btn primary" data-save type="button">บันทึก</button></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>ทดสอบเสียง</h2><p>ส่งประกาศทดสอบไปทุกจอ ไม่กระทบคิวจริง</p></header>
+        <div class="body">
+          <form class="addrow" id="testForm">
+            <label class="field"><span>ห้อง</span><select id="testRoom"></select></label>
+            <label class="field"><span>หมายเลข</span><input type="number" id="testNum" value="12" min="1" max="999" style="width:100px"></label>
+            <button class="btn" type="submit">ประกาศทดสอบ</button>
+          </form>
+          <p class="hint" id="testText"></p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>ไฟล์เสียง</h2><p id="voiceDir"></p></header>
+        <div class="body stack">
+          <div class="voice-sum"><span>มีแล้ว <b id="vHave">0</b> / <span id="vTotal">0</span> ไฟล์</span><span id="vState"></span></div>
+          <div class="missing" id="vMissing"></div>
+          <p class="hint">ตั้งชื่อไฟล์ตามรายการด้านล่าง เช่น <code>num_12.mp3</code> (รองรับ mp3, wav, ogg, m4a) เลือกหลายไฟล์พร้อมกันได้ ไฟล์ <code>room_รหัสห้อง</code> ใช้แทนเสียงชื่อห้องทั้งท่อน เช่น “ที่ห้องฝากครรภ์”</p>
+          <div class="addrow"><input type="file" id="voiceFiles" multiple accept=".mp3,.wav,.ogg,.m4a,audio/*"><button class="btn primary" id="voiceUpload" type="button">อัปโหลดไฟล์เสียง</button></div>
+          <details>
+            <summary>ดูรายการไฟล์เสียงทั้งหมด</summary>
+            <div class="scroll-x"><table class="list"><thead><tr><th>ชื่อไฟล์</th><th>คำที่อ่าน</th><th>สถานะ</th><th></th></tr></thead><tbody id="voiceRows"></tbody></table></div>
+          </details>
+        </div>
+      </section>
+
+      <!-- screen -->
+      <section class="panel" id="screen">
+        <header><h2>จอแสดงผล</h2></header>
+        <div class="body stack" data-section>
+          <div class="grid2">
+            <label class="field"><span>บรรทัดบน</span><input type="text" data-k="org_prefix"></label>
+            <label class="field"><span>ชื่อหน่วยงาน</span><input type="text" data-k="org_name"></label>
+            <label class="field"><span>ป้ายเรียกคิวค้างบนจออย่างน้อย (วินาที)</span><input type="number" min="2" max="30" data-k="callout_seconds"></label>
+            <label class="field"><span>แสดงรูปแต่ละรูป (วินาที)</span><input type="number" min="3" max="600" data-k="image_seconds"></label>
+          </div>
+          <label class="field"><span>ข้อความวิ่งด้านล่าง (เว้นว่าง = ไม่แสดง)</span><textarea rows="2" data-k="ticker"></textarea></label>
+          <div class="actions"><button class="btn primary" data-save type="button">บันทึก</button></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>สื่อประชาสัมพันธ์</h2><p>เล่นวนตามลำดับในช่องซ้ายของจอ</p></header>
+        <div class="scroll-x"><table class="list"><thead><tr><th></th><th>ชื่อ</th><th>ประเภท</th><th>เวลา (วิ)</th><th>เปิด</th><th></th></tr></thead><tbody id="mediaRows"></tbody></table></div>
+        <div class="body stack">
+          <form class="addrow" id="ytForm">
+            <label class="field" style="flex:1"><span>ลิงก์ YouTube (วิดีโอ หรือ Playlist)</span><input type="url" id="ytUrl" placeholder="https://www.youtube.com/watch?v=…" required></label>
+            <button class="btn" type="submit">เพิ่ม YouTube</button>
+          </form>
+          <div class="addrow">
+            <label class="field" style="flex:1"><span>รูปภาพหรือวิดีโอ (jpg, png, webp, gif, mp4, webm)</span><input type="file" id="mediaFiles" multiple accept="image/*,video/mp4,video/webm"></label>
+            <button class="btn" id="mediaUpload" type="button">อัปโหลด</button>
+          </div>
+          <p class="hint" id="uploadState"></p>
+        </div>
+      </section>
+
+      <!-- password -->
+      <section class="panel" id="password">
+        <header><h2>เปลี่ยนรหัสผ่าน</h2></header>
+        <div class="body">
+          <form class="grid2" id="pwForm">
+            <label class="field"><span>รหัสผ่านเดิม</span><input type="password" id="pwOld" autocomplete="current-password" required></label>
+            <label class="field"><span>รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)</span><input type="password" id="pwNew" autocomplete="new-password" minlength="4" required></label>
+            <div class="actions" style="align-self:end"><button class="btn primary" type="submit">เปลี่ยนรหัสผ่าน</button></div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+<script src="/assets/common.js"></script>
+<script src="/assets/admin.js"></script>
+</body>
+</html>
