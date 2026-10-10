@@ -16,11 +16,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - name: Unit and API tests
+        run: cargo test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest playwright
+      - run: python -m playwright install --with-deps chromium
+      - name: Browser tests
+        run: python -m pytest tests/e2e -v
 
   windows:
-    needs: test
+    needs: [test, e2e]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

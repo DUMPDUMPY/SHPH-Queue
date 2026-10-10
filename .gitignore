@@ -4,3 +4,4 @@
 /voice/*.wav
 /voice/*.ogg
 /voice/*.m4a
+__pycache__/

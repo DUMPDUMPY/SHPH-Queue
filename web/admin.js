@@ -10,11 +10,17 @@
   async function start() {
     let s;
     try { s = await Q.api('/admin/session'); } catch (e) { Q.toast(e.message, true); return; }
-    $('login').hidden = s.logged_in;
-    $('app').hidden = !s.logged_in;
-    if (!s.logged_in) { $('pw').focus(); return; }
+    if (!s.logged_in) {
+      $('login').hidden = false;
+      $('app').hidden = true;
+      $('pw').focus();
+      return;
+    }
     $('defaultPw').hidden = !s.default_password;
+    // Show the forms only once they hold the saved values, so nothing typed early gets overwritten.
     await loadSettings();
+    $('login').hidden = true;
+    $('app').hidden = false;
     loadOverview();
     loadVoice();
   }

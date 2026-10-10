@@ -152,7 +152,8 @@ Google TV ไม่มี Chrome มาให้ แนะนำให้ติ�
 
 ```bash
 cargo run -- --dir ./dev-data          # เปิดที่ http://localhost:8000
-cargo test                             # ทดสอบตรรกะคิวและการอ่านตัวเลขไทย
+cargo test                             # unit test + API test (เปิด server จริงทดสอบทุกปุ่ม)
+pytest tests/e2e                       # browser test ทั้ง 4 หน้า (ต้อง cargo build และติดตั้ง pytest, playwright ก่อน)
 cargo build --release                  # ได้ target/release/shph-queue(.exe)
 ```
 
@@ -167,6 +168,7 @@ src/
   thai.rs     อ่านตัวเลขเป็นคำไทย
 web/          หน้าเว็บทั้งหมด
 voice/        รายการไฟล์เสียง + ไฟล์เสียง .mp3
+tests/        API test (Rust) และ browser test (Playwright)
 tools/        สคริปต์สร้างไฟล์เสียง
 packaging/    ไฟล์ .bat และคู่มือสำหรับชุดติดตั้ง Windows
 docs/         ภาพหน้าจอสำหรับ README
@@ -176,7 +178,7 @@ docs/         ภาพหน้าจอสำหรับ README
 - [CLAUDE.md](CLAUDE.md) การตัดสินใจในการออกแบบ วิธีทดสอบ และขั้นตอนออก release
 - [CHANGELOG.md](CHANGELOG.md) บันทึกการเปลี่ยนแปลงแต่ละเวอร์ชัน
 
-ทุกครั้งที่ push ขึ้น GitHub, GitHub Actions จะรัน test, build บน Windows, สร้างไฟล์เสียง แล้วแพ็กเป็น zip ถ้า push tag `v*` จะแนบ zip ไว้ที่หน้า Releases ด้วย
+ทุกครั้งที่ push ขึ้น GitHub, GitHub Actions จะตรวจรูปแบบโค้ด รัน test ทั้งหมด (รวม browser test) แล้ว build บน Windows, สร้างไฟล์เสียง แล้วแพ็กเป็น zip ถ้า push tag `v*` จะแนบ zip ไว้ที่หน้า Releases ด้วย
 
 ## เครดิต
 
