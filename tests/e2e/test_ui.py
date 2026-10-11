@@ -414,3 +414,80 @@ def test_long_room_names_fit_when_there_are_many_rooms(open_page, server):
         sel = f".card >> nth={i} >> .card-name"
         if "wrap" not in (tv.locator(sel).get_attribute("class") or ""):
             assert not _clipped(tv, sel), f"tone marks clipped in card {i}"
+
+
+def png_from(w, h, pixel):
+    """Build an RGB PNG where pixel(x, y) returns (r, g, b)."""
+    raw = b"".join(b"\x00" + b"".join(bytes(pixel(x, y)) for x in range(w)) for y in range(h))
+
+    def chunk(tag, data):
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+
+
+def test_logo_upload_trims_paper_and_shows_everywhere(open_page, server, tmp_path):
+    # A "scanned page": a green disc with a white centre on white paper, far from the edges.
+    def pixel(x, y):
+        r2 = (x - 300) ** 2 + (y - 300) ** 2
+        if r2 < 40**2:
+            return (255, 255, 255)
+        return (14, 91, 73) if r2 < 120**2 else (255, 255, 255)
+
+    scan = tmp_path / "scan.png"
+    scan.write_bytes(png_from(600, 850, pixel))
+
+    tv = open_page("/display", 1920, 1080)
+    expect(tv.locator("#logoDefault")).to_be_visible()
+    a = open_page("/admin")
+    login(a)
+    a.set_input_files("#logoFile", str(scan))
+    a.click("#logoUpload")
+    expect(a.locator("#logoPreview img")).to_have_count(1)
+
+    expect(tv.locator("#logoImg")).to_be_visible()
+    expect(tv.locator("#logoDefault")).to_be_hidden()
+    tv.wait_for_function("() => document.getElementById('logoImg').complete && document.getElementById('logoImg').naturalWidth > 0")
+    info = tv.evaluate(
+        """() => {
+            const img = document.getElementById('logoImg');
+            const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+            const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+            const px = (x, y) => [...ctx.getImageData(x, y, 1, 1).data];
+            let minX = c.width, maxX = -1;
+            const row = ctx.getImageData(0, c.height / 2, c.width, 1).data;
+            for (let x = 0; x < c.width; x++) if (row[x * 4 + 3] > 128) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); }
+            return { w: c.width, h: c.height, corner: px(5, 5), ring: px(c.width / 2, Math.round(c.height * 0.2)), centre: px(c.width / 2, c.height / 2), span: (maxX - minX) / c.width };
+        }"""
+    )
+    assert (info["w"], info["h"]) == (512, 512)
+    assert info["corner"][3] == 0, "paper around the logo becomes transparent"
+    assert info["ring"][3] == 255 and info["ring"][1] > info["ring"][0], "the green disc is kept"
+    assert info["centre"][:3] == [255, 255, 255] and info["centre"][3] == 255, "white inside the logo is kept"
+    assert info["span"] > 0.9, "the page margins were trimmed away"
+
+    room = open_page("/room/1")
+    expect(room.locator(".topbar .brand img")).to_have_count(1)
+
+    src = server.state()["config"]["logo"]
+    a.click("#logoReset")
+    confirm(a)
+    expect(tv.locator("#logoDefault")).to_be_visible()
+    expect(tv.locator("#logoImg")).to_be_hidden()
+    a.wait_for_timeout(300)
+    import urllib.error, urllib.request
+    try:
+        urllib.request.urlopen(f"{server.url}/media/{src}")
+        raise AssertionError("old logo file should be deleted")
+    except urllib.error.HTTPError as e:
+        assert e.code == 404
+
+
+def test_logo_upload_rejects_other_files(open_page, tmp_path):
+    a = open_page("/admin")
+    login(a)
+    bad = tmp_path / "logo.gif"
+    bad.write_bytes(b"GIF89a")
+    a.set_input_files("#logoFile", str(bad))
+    a.click("#logoUpload")
+    expect(a.locator(".toast.error")).to_have_text("ใช้ได้เฉพาะไฟล์ PNG, JPG หรือ WebP")

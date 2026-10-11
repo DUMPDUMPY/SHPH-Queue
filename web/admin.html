@@ -54,6 +54,10 @@
   .missing span { font-size: 12px; background: var(--red-soft); color: var(--red); padding: 2px 8px; border-radius: 6px; }
   details summary { cursor: pointer; color: var(--green); font-size: 14px; }
   .ok { color: var(--green); }
+  .logo-row { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
+  .logo-form { flex: 1 1 260px; min-width: 0; }
+  .logo-preview { width: 128px; height: 128px; flex: none; border-radius: 16px; background: #0C1D1A; display: grid; place-items: center; padding: 12px; }
+  .logo-preview img, .logo-preview svg { width: 100%; height: 100%; object-fit: contain; }
   .bad { color: var(--red); }
 </style>
 </head>
@@ -78,6 +82,7 @@
       <a href="#queue">เลขคิว</a>
       <a href="#sound">เสียงประกาศ</a>
       <a href="#screen">จอแสดงผล</a>
+      <a href="#logo">โลโก้</a>
       <a href="#password">รหัสผ่าน</a>
       <button class="btn small out" id="logout" type="button">ออกจากระบบ</button>
     </nav>
@@ -210,6 +215,22 @@
           </div>
           <label class="field"><span>ข้อความวิ่งด้านล่าง (เว้นว่าง = ไม่แสดง)</span><textarea rows="2" data-k="ticker"></textarea></label>
           <div class="actions"><button class="btn primary" data-save type="button">บันทึก</button></div>
+        </div>
+      </section>
+
+      <section class="panel" id="logo">
+        <header><h2>โลโก้หน่วยงาน</h2><p>แสดงมุมซ้ายบนของจอทีวีและทุกหน้า</p></header>
+        <div class="body logo-row">
+          <div class="logo-preview" id="logoPreview"></div>
+          <div class="stack logo-form">
+            <label class="field"><span>ไฟล์โลโก้</span><input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp">
+              <small>PNG, JPG หรือ WebP แนะนำภาพสี่เหลี่ยมจัตุรัส พื้นโปร่งใส อย่างน้อย 256×256 พิกเซล ระบบจะย่อเป็น 512×512 ให้เอง</small></label>
+            <label class="switch"><input type="checkbox" id="logoTrim" checked> ตัดขอบและพื้นสีขาวรอบโลโก้ออกอัตโนมัติ (สำหรับไฟล์สแกนหรือภาพบนกระดาษขาว)</label>
+            <div class="actions" style="justify-content:flex-start">
+              <button class="btn primary" id="logoUpload" type="button">อัปโหลดโลโก้</button>
+              <button class="btn" id="logoReset" type="button">ใช้โลโก้เริ่มต้น</button>
+            </div>
+          </div>
         </div>
       </section>
 

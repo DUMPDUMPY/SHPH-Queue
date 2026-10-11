@@ -147,6 +147,8 @@ pub struct Config {
     pub callout_seconds: u32,
     pub image_seconds: u32,
     pub media: Vec<MediaItem>,
+    /// Uploaded logo, a file name under /media/. None shows the built-in mark.
+    pub logo: Option<String>,
 }
 
 impl Default for Config {
@@ -165,6 +167,7 @@ impl Default for Config {
             callout_seconds: 5,
             image_seconds: 10,
             media: vec![],
+            logo: None,
         }
     }
 }
@@ -181,5 +184,8 @@ impl Config {
         self.callout_seconds = self.callout_seconds.clamp(2, 30);
         self.image_seconds = self.image_seconds.clamp(3, 600);
         self.held_expire_minutes = self.held_expire_minutes.min(24 * 60);
+        if self.logo.as_deref().is_some_and(|l| l.is_empty() || l.contains(['/', '\\']) || l.starts_with('.')) {
+            self.logo = None;
+        }
     }
 }

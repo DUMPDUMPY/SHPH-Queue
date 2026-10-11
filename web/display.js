@@ -155,6 +155,12 @@
 
   let tickerText = null;
   function applyConfig() {
+    $('logoImg').hidden = !cfg.logo;
+    $('logoDefault').toggleAttribute('hidden', !!cfg.logo); // an <svg> has no .hidden property
+    if (cfg.logo) {
+      const src = '/media/' + encodeURIComponent(cfg.logo);
+      if ($('logoImg').getAttribute('src') !== src) $('logoImg').src = src;
+    }
     $('orgPrefix').textContent = cfg.org_prefix;
     $('orgName').textContent = cfg.org_name;
     $('phKicker').textContent = `ยินดีต้อนรับสู่${cfg.org_prefix}`;
