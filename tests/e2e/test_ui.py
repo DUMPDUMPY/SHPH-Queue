@@ -515,3 +515,28 @@ def test_theme_preview_link_does_not_change_the_setting(open_page, server):
     tv = open_page("/display?theme=purple", 1920, 1080)
     expect(tv.locator("#tv")).to_have_attribute("data-theme", "purple")
     assert server.state()["config"]["theme"] == "green"
+
+
+@pytest.mark.parametrize("theme", ["green", "purple", "lavender", "orchid"])
+def test_every_theme_renders_readably(open_page, server, theme):
+    server.api("/admin/login", {"password": "admin"})
+    cfg = server.api("/admin/settings")["config"]
+    cfg["theme"] = theme
+    server.api("/admin/config", cfg, method="PUT")
+    server.api("/rooms/1/next", {})
+    tv = open_page("/display", 1920, 1080)
+    expect(tv.locator("#tv")).to_have_attribute("data-theme", theme)
+    # Room numbers must stand out from their card: compare the text colour with the card's main colour.
+    ratio = tv.evaluate(
+        """() => {
+            const lum = (c) => { const [r, g, b] = c.match(/[\\d.]+/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+            const card = document.querySelector('.card[data-id="2"]');
+            const cs = getComputedStyle(card);
+            const bg = cs.backgroundImage !== 'none' ? cs.backgroundImage.match(/rgba?\\([^)]*\\)/)[0] : cs.backgroundColor;
+            const fg = getComputedStyle(card.querySelector('.card-name')).color;
+            const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x);
+            return (a + .05) / (b + .05);
+        }"""
+    )
+    assert ratio >= 4.5, f"{theme}: room name contrast {ratio:.1f}"
+    assert not _clipped(tv, "#orgName")

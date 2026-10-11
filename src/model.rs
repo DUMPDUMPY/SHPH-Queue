@@ -176,7 +176,7 @@ impl Default for Config {
 }
 
 /// TV themes; each needs a `.tv[data-theme=…]` block in web/display.css (the first is the default).
-pub const THEMES: &[&str] = &["green", "purple"];
+pub const THEMES: &[&str] = &["green", "purple", "lavender", "orchid"];
 
 impl Config {
     /// Clamp values an admin could set out of range.

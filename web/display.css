@@ -30,7 +30,7 @@ html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor
   --bg: radial-gradient(ellipse at 10% 0%, #FFFFFF 0 160px, transparent 700px), linear-gradient(160deg, #FFEAFD 0%, #F8D6F5 50%, #EEC4F3 100%);
   --head-bg: linear-gradient(180deg, #D468DF 0%, #A838BC 55%, #8E27A6 100%); --head-line: #7A1F90; --head-text: #FFFFFF; --head-muted: #F9DDFD;
   --text: #5A1569; --muted: #9A4AA8; --line: #E3AEEA;
-  --panel: linear-gradient(180deg, #CF5EDB 0%, #A738BA 58%, #8E28A7 100%); --panel-text: #FFFFFF; --panel-muted: #F7DAFB; --panel-border: #F3C4F7; --pharm-border: #F3C4F7;
+  --panel: linear-gradient(180deg, #B044C2 0%, #9A30B0 58%, #84249E 100%); --panel-text: #FFFFFF; --panel-muted: #F7DAFB; --panel-border: #F3C4F7; --pharm-border: #F3C4F7;
   --idle: rgba(255, 255, 255, .35); --card-shadow: 0 6px 0 rgba(122, 31, 144, .28), inset 0 2px 0 rgba(255, 255, 255, .4); --radius: 26px;
   --accent: linear-gradient(180deg, #FFE985 0%, #FFC836 55%, #FFA21C 100%); --accent-solid: #F59E0B; --accent-ink: #5A1569; --accent-muted: #7A2A86; --flash: #FFF4B5;
   --warn: #D9480F;
@@ -39,6 +39,37 @@ html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor
   --ph-kicker: #FFE27A; --ph-text: #FFFFFF;
   --tick-bg: linear-gradient(180deg, #C553D3, #8E27A6); --tick-ink: #FFFFFF; --tick-label-bg: linear-gradient(180deg, #FFE27A, #FFB020); --tick-label-ink: #5A1569;
 }
+/* Lavender: the owner's pastel palette, kept flat and quiet like green; deep plum text for distance reading. */
+.tv[data-theme="lavender"] {
+  --bg: radial-gradient(ellipse at 85% 0%, #F7F2FC 0 240px, transparent 900px), linear-gradient(170deg, #EFE8F8 0%, #E6DCF4 100%);
+  --head-bg: transparent; --head-line: #CEC2EB; --head-text: #33244F; --head-muted: #7A66A6;
+  --text: #33244F; --muted: #7A66A6; --line: #CEC2EB;
+  --panel: #FBF9FE; --panel-text: #33244F; --panel-muted: #8572AE; --panel-border: #DDD5F3; --pharm-border: #C0AFE2;
+  --idle: #D9C4EC; --card-shadow: 0 10px 28px rgba(83, 60, 140, .10); --radius: 22px;
+  --accent: linear-gradient(160deg, #9379C2 0%, #6F58A8 100%); --accent-solid: #7A62B3; --accent-ink: #FFFFFF; --accent-muted: #E6D1F2; --flash: #5B4593;
+  --warn: #A34E86;
+  --chip-bg: #FFFFFF; --chip-ink: #33244F; --chip-first-bg: #33244F; --chip-first-ink: #FFFFFF; --strip-bg: rgba(255, 255, 255, .55);
+  --ph-bg: radial-gradient(circle at 82% 26%, #E6D1F2 0 170px, transparent 171px), radial-gradient(circle at 92% 60%, #FFFFFF66 0 90px, transparent 91px), linear-gradient(160deg, #B19CD8, #8D72BE);
+  --ph-kicker: #F6EEFC; --ph-text: #FFFFFF;
+  --tick-bg: #9379C2; --tick-ink: #FFFFFF; --tick-label-bg: #33244F; --tick-label-ink: #E6D1F2;
+}
+/* Orchid: the pink-purple theme dressed up: deep plum velvet, orchid glow, gold hairlines and gold call banner. */
+.tv[data-theme="orchid"] {
+  --bg: radial-gradient(ellipse at 15% -10%, #6B1F6E 0 200px, transparent 900px), radial-gradient(ellipse at 100% 110%, #4A1450 0 200px, transparent 800px), linear-gradient(160deg, #2B0D33 0%, #1E0824 100%);
+  --head-bg: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0)); --head-line: #8C6A3A; --head-text: #FBEFFC; --head-muted: #D9B3DF;
+  --text: #FBEFFC; --muted: #D2A9D9; --line: #5C2A63;
+  --panel: linear-gradient(165deg, #5E1D68 0%, #43134D 100%); --panel-text: #FFF6FD; --panel-muted: #E2BFE8; --panel-border: rgba(214, 175, 106, .55); --pharm-border: rgba(214, 175, 106, .8);
+  --idle: rgba(255, 255, 255, .22); --card-shadow: 0 14px 30px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .12); --radius: 22px;
+  --accent: linear-gradient(170deg, #F8E3A6 0%, #E2B964 55%, #C9953D 100%); --accent-solid: #E0B45C; --accent-ink: #2B0D33; --accent-muted: #5C2A4A; --flash: #FFF1C9;
+  --warn: #F4A6CF;
+  --chip-bg: #4A1655; --chip-ink: #FBEFFC; --chip-first-bg: linear-gradient(170deg, #F8E3A6, #D9A94F); --chip-first-ink: #2B0D33; --strip-bg: rgba(255, 255, 255, .04);
+  --ph-bg: radial-gradient(circle at 80% 24%, #C04FB0AA 0 170px, transparent 171px), radial-gradient(circle at 92% 60%, #E2B96466 0 90px, transparent 91px), linear-gradient(160deg, #6B1F6E, #2B0D33);
+  --ph-kicker: #F1D08A; --ph-text: #FFF6FD;
+  --tick-bg: linear-gradient(180deg, #4E1659, #36103F); --tick-ink: #FBEFFC; --tick-label-bg: linear-gradient(170deg, #F8E3A6, #D9A94F); --tick-label-ink: #2B0D33;
+}
+.tv[data-theme="orchid"] .media { box-shadow: 0 0 0 2px rgba(214, 175, 106, .7), 0 20px 40px rgba(0, 0, 0, .45); }
+.tv[data-theme="orchid"] .grp { color: #E9C77F; letter-spacing: .04em; }
+.tv[data-theme="orchid"] .grp::after { background: linear-gradient(90deg, rgba(214, 175, 106, .7), transparent); }
 .tv[data-theme="purple"] .media { box-shadow: 0 0 0 5px #FFFFFF, 0 12px 30px rgba(122, 31, 144, .3); }
 .tv[data-theme="purple"] .strip { box-shadow: 0 6px 18px rgba(122, 31, 144, .12); }
 .tv[data-theme="purple"] .grp { align-self: flex-start; color: #FFFFFF; background: var(--panel); border-radius: 999px; padding: 0 24px; font-weight: 600; box-shadow: var(--card-shadow); }

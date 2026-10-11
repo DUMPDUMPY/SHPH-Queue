@@ -764,8 +764,10 @@ fn theme_setting_only_accepts_known_themes() {
     let mut s = Server::start();
     assert_eq!(s.state()["config"]["theme"], "green");
     s.login("admin");
-    s.put_config(|c| c["theme"] = json!("purple"));
-    assert_eq!(s.state()["config"]["theme"], "purple");
+    for theme in ["purple", "lavender", "orchid", "green"] {
+        s.put_config(|c| c["theme"] = json!(theme));
+        assert_eq!(s.state()["config"]["theme"], theme);
+    }
     s.put_config(|c| c["theme"] = json!("rainbow"));
     assert_eq!(s.state()["config"]["theme"], "green");
 }
