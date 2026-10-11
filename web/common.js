@@ -122,14 +122,15 @@
 
   let topbarKey = null;
   function topbar(current, org) {
-    const key = current + '|' + (org ? org.org_prefix + org.org_name : '');
+    const key = current + '|' + (org ? org.org_prefix + org.org_name + (org.logo || '') : '');
     if (key === topbarKey) return;
     const wasOn = topbarKey !== null && !document.getElementById('conn')?.classList.contains('off');
     topbarKey = key;
     const links = [['/', 'หน้าแรก'], ['/display', 'จอแสดงผล'], ['/room', 'ห้องตรวจ'], ['/manage', 'จัดการคิว'], ['/admin', 'ผู้ดูแลระบบ']];
     const el = document.querySelector('.topbar');
     if (!el) return;
-    el.innerHTML = `<a class="brand" href="/">${LOGO}<span><small>${esc(org?.org_prefix || 'ระบบเรียกคิว')}</small><b>${esc(org?.org_name || 'รพ.สต.')}</b></span></a>
+    const mark = org?.logo ? `<img src="/media/${encodeURIComponent(org.logo)}" alt="">` : LOGO;
+    el.innerHTML = `<a class="brand" href="/">${mark}<span><small>${esc(org?.org_prefix || 'ระบบเรียกคิว')}</small><b>${esc(org?.org_name || 'รพ.สต.')}</b></span></a>
       <nav>${links.map(([h, t]) => `<a href="${h}"${h === current ? ' aria-current="page"' : ''}>${t}</a>`).join('')}</nav>
       <span class="conn off" id="conn">กำลังเชื่อมต่อ…</span>`;
     if (wasOn || connected) setConn(true);

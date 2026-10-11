@@ -60,6 +60,9 @@ pub const PHRASES: &[(&str, &str)] = &[
     ("screening", "ที่จุดคัดกรอง"),
     ("lab", "ที่ห้องเจาะเลือด"),
     ("dental", "ที่ห้องทันตกรรม"),
+    ("wound", "ที่ห้องทำแผล"),
+    ("promote", "ที่ห้องส่งเสริม"),
+    ("promote_health", "ที่ห้องส่งเสริมสุขภาพ"),
 ];
 
 pub fn phrase_text(key: &str) -> &'static str {
@@ -83,6 +86,19 @@ mod tests {
         assert_eq!(number_words(101), "หนึ่งร้อยเอ็ด");
         assert_eq!(number_words(115), "หนึ่งร้อยสิบห้า");
         assert_eq!(number_words(250), "สองร้อยห้าสิบ");
+    }
+
+    #[test]
+    fn every_phrase_has_a_voice_line() {
+        let lines: std::collections::BTreeMap<String, String> =
+            serde_json::from_str(include_str!("../voice/voice_lines.json")).unwrap();
+        for (key, text) in PHRASES {
+            assert_eq!(
+                lines.get(&format!("phrase_{key}")).map(String::as_str),
+                Some(*text),
+                "voice_lines.json needs phrase_{key}"
+            );
+        }
     }
 
     #[test]

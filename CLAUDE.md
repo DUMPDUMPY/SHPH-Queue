@@ -22,6 +22,8 @@ The owner talks in Thai. Answer in Thai; keep code, comments and commit messages
 - **Login only on `/admin`.** `/room` and `/manage` are open on the LAN by the owner's choice. `/manage` includes "เริ่มคิวใหม่" behind an in-page confirm.
 - **Voice:** announcements are joined clips ("ขอเชิญหมายเลข" + number + phrase + room number + "ค่ะ"), female voice. Numbers are read as Thai words (12 = สิบสอง, 21 = ยี่สิบเอ็ด, 101 = หนึ่งร้อยเอ็ด). When clips are missing, the display falls back to the browser's Thai TTS.
 - **TV design:** dark green with a saffron call highlight, fonts Bai Jamjuree (numbers, headings) and Anuphan (text), embedded under `web/fonts/`. The approved mockup is the published artifact "จอเรียกคิว รพ.สต.".
+- **Themes:** every TV colour is a CSS token on `.tv` in `web/display.css`; `.tv[data-theme=…]` blocks override them. `green` (default), `purple` (pink page, glossy magenta cards, gold highlight, after the owner's provincial-office reference), `lavender` (the owner's pastel palette, flat like green) and `orchid` (deep plum, gold hairlines). A browser test checks each theme's room-name contrast is at least 4.5:1. A new theme needs a token block, its name in `THEMES` (src/model.rs) and a radio option in admin.html. `/display?theme=x` previews without saving.
+- **Logo:** uploaded from admin; the browser trims margins, makes outer white paper transparent and scales to 512×512 before upload (`config.logo` is the media file name).
 
 ## Layout
 
@@ -35,7 +37,7 @@ src/model.rs   Config, Core, Room, Held, Waiting + defaults and sanitize()
 src/thai.rs    Thai number words, clip names, built-in phrases
 web/           pages; common.js/common.css are shared by staff pages, display.* is the TV
 voice/voice_lines.json   clip name -> Thai text. Must match thai::PHRASES and thai::number_clips()
-voice/*.mp3              the 118 clips, committed by the `voice` workflow
+voice/*.mp3              the 121 clips, committed by the `voice` workflow
 tools/make_voice.py      generates clips with edge-tts (th-TH-PremwadeeNeural); skips files that exist
 packaging/     .bat helpers and README-Windows.txt copied into the Windows zip
 .github/workflows/build.yml   cargo test (Linux) -> release build + zip with voice/*.mp3 (Windows)
@@ -78,7 +80,7 @@ cargo build --release                       # ~4.8 MB binary
 
 1. Update `CHANGELOG.md` and `version` in `Cargo.toml`.
 2. Push a tag `vX.Y.Z`. The workflow attaches `SHPH-Queue-windows.zip` to a GitHub Release.
-3. Check the Windows job log for `voice clips: 118`. A warning there means the zip has no voice files.
+3. Check the Windows job log for `voice clips: 121` (one per entry in voice_lines.json). A warning there means the zip has no voice files.
 
 Every push also uploads the zip as a 90-day Actions artifact.
 

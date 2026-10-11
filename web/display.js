@@ -49,9 +49,12 @@
     const rows = groups.reduce((n, [, l]) => n + rowsOf(l.length), 0);
     const avail = 1080 - 124 - 68 - 48 - groups.length * 48 - Math.max(0, rows - groups.length) * 14;
     const h = Math.max(80, avail / Math.max(rows, 1));
-    const numSize = Math.min(twoCols ? 110 : 190, h * 0.76);
-    const nameSize = Math.min(twoCols ? 34 : 52, h * 0.24);
+    const numSize = Math.min(190, h * 0.76);
+    const nameSize = Math.min(52, h * 0.24);
     const subSize = Math.min(24, h * 0.15);
+    // Two-column cards are narrow: the name gets its own full-width line, the number sits below it.
+    const stackName = Math.min(40, h * 0.22);
+    const stackNum = Math.max(48, Math.min(140, (h - stackName * 1.75 - 18) / 0.92));
     for (const [title, list] of groups) {
       const g = document.createElement('div');
       g.className = 'grp';
@@ -62,12 +65,13 @@
       box.style.gridTemplateColumns = twoCols && list.length > 1 ? '1fr 1fr' : '1fr';
       box.style.flex = String(rowsOf(list.length));
       box.style.gridAutoRows = '1fr';
+      const stacked = twoCols && list.length > 1;
       for (const r of list) {
         const c = document.createElement('div');
-        c.className = 'card' + (r.kind === 'pharmacy' ? ' pharm' : '');
+        c.className = 'card' + (r.kind === 'pharmacy' ? ' pharm' : '') + (stacked ? ' stack' : '');
         c.dataset.id = r.id;
-        c.style.setProperty('--num-size', numSize + 'px');
-        c.style.setProperty('--name-size', nameSize + 'px');
+        c.style.setProperty('--num-size', (stacked ? stackNum : numSize) + 'px');
+        c.style.setProperty('--name-size', (stacked ? stackName : nameSize) + 'px');
         c.style.setProperty('--sub-size', subSize + 'px');
         c.innerHTML = '<div><div class="card-name"></div><div class="card-sub"></div></div><div class="card-num"></div>';
         c.querySelector('.card-name').textContent = r.name;
@@ -76,6 +80,22 @@
       el.appendChild(box);
     }
   }
+
+  // Shrink a room name until it fits its card (down to 60%), then let it wrap onto two lines.
+  function fitNames() {
+    document.querySelectorAll('.card-name').forEach((el) => {
+      el.classList.remove('wrap');
+      el.style.fontSize = '';
+      let size = parseFloat(getComputedStyle(el).fontSize);
+      const min = size * 0.6;
+      while (el.scrollWidth > el.clientWidth + 1 && size > min) {
+        size -= 1;
+        el.style.fontSize = size + 'px';
+      }
+      if (el.scrollWidth > el.clientWidth + 1) el.classList.add('wrap');
+    });
+  }
+  if (document.fonts) document.fonts.ready.then(() => { if (S) fitNames(); });
 
   function chips(el, nums, firstCls) {
     el.innerHTML = '';
@@ -126,6 +146,7 @@
           ? S.pharmacy.length ? `รอรับยา ${S.pharmacy.slice(0, 6).map((w) => w.number).join(' · ')}` : 'ไม่มีคิวรอรับยา'
           : idle ? 'ว่าง' : 'กำลังเรียก';
     });
+    fitNames();
     $('upStrip').hidden = !S.upcoming.length;
     $('strips').classList.toggle('solo', !S.upcoming.length);
     chips($('upNext'), S.upcoming, 'first');
@@ -134,6 +155,14 @@
 
   let tickerText = null;
   function applyConfig() {
+    // ?theme=purple previews a theme on this screen without saving it.
+    tv.dataset.theme = new URLSearchParams(location.search).get('theme') || cfg.theme || 'green';
+    $('logoImg').hidden = !cfg.logo;
+    $('logoDefault').toggleAttribute('hidden', !!cfg.logo); // an <svg> has no .hidden property
+    if (cfg.logo) {
+      const src = '/media/' + encodeURIComponent(cfg.logo);
+      if ($('logoImg').getAttribute('src') !== src) $('logoImg').src = src;
+    }
     $('orgPrefix').textContent = cfg.org_prefix;
     $('orgName').textContent = cfg.org_name;
     $('phKicker').textContent = `ยินดีต้อนรับสู่${cfg.org_prefix}`;

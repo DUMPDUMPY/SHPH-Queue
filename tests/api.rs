@@ -746,3 +746,28 @@ fn media_sound_setting_is_saved_per_clip() {
     assert_eq!(media[0]["muted"], true);
     assert_eq!(media[1]["muted"], false, "older settings without the field keep sound on");
 }
+
+#[test]
+fn logo_setting_is_saved_and_checked() {
+    let mut s = Server::start();
+    s.login("admin");
+    s.put_config(|c| c["logo"] = json!("20261011_abc.png"));
+    assert_eq!(s.state()["config"]["logo"], "20261011_abc.png");
+    s.put_config(|c| c["logo"] = json!("../queue.db"));
+    assert!(s.state()["config"]["logo"].is_null(), "a path is never accepted as a logo");
+    let s = s.restart();
+    assert!(s.state()["config"]["logo"].is_null());
+}
+
+#[test]
+fn theme_setting_only_accepts_known_themes() {
+    let mut s = Server::start();
+    assert_eq!(s.state()["config"]["theme"], "green");
+    s.login("admin");
+    for theme in ["purple", "lavender", "orchid", "green"] {
+        s.put_config(|c| c["theme"] = json!(theme));
+        assert_eq!(s.state()["config"]["theme"], theme);
+    }
+    s.put_config(|c| c["theme"] = json!("rainbow"));
+    assert_eq!(s.state()["config"]["theme"], "green");
+}

@@ -61,6 +61,7 @@
     document.querySelectorAll('[data-k]').forEach((el) => {
       const v = getPath(C, el.dataset.k);
       if (el.type === 'checkbox') el.checked = !!v;
+      else if (el.type === 'radio') el.checked = el.value === v;
       else el.value = v ?? '';
     });
     $('pharmacyOn').checked = C.pharmacy_enabled;
@@ -70,6 +71,7 @@
     const c = JSON.parse(JSON.stringify(C));
     document.querySelectorAll('[data-k]').forEach((el) => {
       let v;
+      if (el.type === 'radio' && !el.checked) return;
       if (el.type === 'checkbox') v = el.checked;
       else if (el.type === 'number' || el.dataset.type === 'number') v = Number(el.value);
       else v = el.value;
@@ -88,6 +90,7 @@
     renderRooms();
     renderMedia();
     renderTestRooms();
+    renderLogo();
   }
 
   async function loadSettings() {
@@ -309,6 +312,97 @@
     };
     xhr.onerror = () => { $('uploadState').textContent = ''; Q.toast('อัปโหลดไม่สำเร็จ', true); };
     xhr.send(fd);
+  });
+
+  // ---------------------------------------------------------------- logo
+  function renderLogo() {
+    $('logoPreview').innerHTML = C.logo ? `<img src="/media/${encodeURIComponent(C.logo)}" alt="โลโก้ปัจจุบัน">` : Q.LOGO;
+    $('logoReset').disabled = !C.logo;
+  }
+
+  // Crop to the logo itself (drop white or transparent margins), center it on a square, scale to 512 px.
+  async function prepareLogo(file, trim) {
+    const img = await createImageBitmap(file);
+    const src = document.createElement('canvas');
+    src.width = img.width;
+    src.height = img.height;
+    const sctx = src.getContext('2d', { willReadFrequently: true });
+    sctx.drawImage(img, 0, 0);
+    let x0 = 0, y0 = 0, x1 = img.width - 1, y1 = img.height - 1;
+    if (trim) {
+      const d = sctx.getImageData(0, 0, img.width, img.height).data;
+      let minX = img.width, minY = img.height, maxX = -1, maxY = -1;
+      for (let y = 0; y < img.height; y++) {
+        for (let x = 0; x < img.width; x++) {
+          const i = (y * img.width + x) * 4;
+          const blank = d[i + 3] < 16 || (d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235);
+          if (!blank) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX >= 0) { x0 = minX; y0 = minY; x1 = maxX; y1 = maxY; }
+    }
+    const w = x1 - x0 + 1, h = y1 - y0 + 1;
+    const side = Math.max(w, h) * (trim ? 1.04 : 1);
+    const out = document.createElement('canvas');
+    out.width = out.height = 512;
+    const scale = 512 / side;
+    const octx = out.getContext('2d', { willReadFrequently: true });
+    octx.drawImage(src, x0, y0, w, h, (512 - w * scale) / 2, (512 - h * scale) / 2, w * scale, h * scale);
+    if (trim) clearOuterWhite(octx, 512);
+    return new Promise((res) => out.toBlob(res, 'image/png'));
+  }
+
+  // Make the white paper around a scanned logo transparent: flood-fill from the edges through
+  // near-white pixels only, so white inside the logo's outline stays.
+  function clearOuterWhite(ctx, n) {
+    const im = ctx.getImageData(0, 0, n, n), d = im.data;
+    const seen = new Uint8Array(n * n);
+    const light = (p) => d[p * 4 + 3] < 16 || (d[p * 4] > 225 && d[p * 4 + 1] > 225 && d[p * 4 + 2] > 225);
+    const stack = [];
+    for (let i = 0; i < n; i++) stack.push(i, (n - 1) * n + i, i * n, i * n + n - 1);
+    while (stack.length) {
+      const p = stack.pop();
+      if (seen[p] || !light(p)) continue;
+      seen[p] = 1;
+      d[p * 4 + 3] = 0;
+      const x = p % n, y = (p / n) | 0;
+      if (x > 0) stack.push(p - 1);
+      if (x < n - 1) stack.push(p + 1);
+      if (y > 0) stack.push(p - n);
+      if (y < n - 1) stack.push(p + n);
+    }
+    ctx.putImageData(im, 0, 0);
+  }
+
+  $('logoUpload').addEventListener('click', async () => {
+    const file = $('logoFile').files[0];
+    if (!file) return Q.toast('เลือกไฟล์โลโก้ก่อน', true);
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return Q.toast('ใช้ได้เฉพาะไฟล์ PNG, JPG หรือ WebP', true);
+    let blob;
+    try { blob = await prepareLogo(file, $('logoTrim').checked); } catch (e) { return Q.toast('เปิดไฟล์ภาพนี้ไม่ได้', true); }
+    const fd = new FormData();
+    fd.append('file', blob, 'logo.png');
+    const up = await Q.act(() => Q.api('/admin/media', fd));
+    if (!up) return;
+    const old = C.logo;
+    if (await saveConfig({ ...C, logo: up.files[0].src }, 'เปลี่ยนโลโก้แล้ว') && old) {
+      Q.api(`/admin/media/${encodeURIComponent(old)}`, undefined, 'DELETE').catch(() => {});
+    }
+    $('logoFile').value = '';
+  });
+
+  $('logoReset').addEventListener('click', async () => {
+    const old = C.logo;
+    if (!old) return;
+    if (!(await Q.confirmBox('กลับไปใช้โลโก้เริ่มต้น?', 'ไฟล์โลโก้ที่อัปโหลดไว้จะถูกลบ', 'ใช้โลโก้เริ่มต้น', true))) return;
+    if (await saveConfig({ ...C, logo: null }, 'กลับไปใช้โลโก้เริ่มต้นแล้ว')) {
+      Q.api(`/admin/media/${encodeURIComponent(old)}`, undefined, 'DELETE').catch(() => {});
+    }
   });
 
   // ---------------------------------------------------------------- overview
