@@ -37,7 +37,7 @@ src/model.rs   Config, Core, Room, Held, Waiting + defaults and sanitize()
 src/thai.rs    Thai number words, clip names, built-in phrases
 web/           pages; common.js/common.css are shared by staff pages, display.* is the TV
 voice/voice_lines.json   clip name -> Thai text. Must match thai::PHRASES and thai::number_clips()
-voice/*.mp3              the 118 clips, committed by the `voice` workflow
+voice/*.mp3              the 121 clips, committed by the `voice` workflow
 tools/make_voice.py      generates clips with edge-tts (th-TH-PremwadeeNeural); skips files that exist
 packaging/     .bat helpers and README-Windows.txt copied into the Windows zip
 .github/workflows/build.yml   cargo test (Linux) -> release build + zip with voice/*.mp3 (Windows)
@@ -80,7 +80,7 @@ cargo build --release                       # ~4.8 MB binary
 
 1. Update `CHANGELOG.md` and `version` in `Cargo.toml`.
 2. Push a tag `vX.Y.Z`. The workflow attaches `SHPH-Queue-windows.zip` to a GitHub Release.
-3. Check the Windows job log for `voice clips: 118`. A warning there means the zip has no voice files.
+3. Check the Windows job log for `voice clips: 121` (one per entry in voice_lines.json). A warning there means the zip has no voice files.
 
 Every push also uploads the zip as a 90-day Actions artifact.
 
