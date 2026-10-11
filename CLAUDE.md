@@ -79,7 +79,7 @@ cargo build --release                       # ~4.8 MB binary
 ## Release
 
 1. Update `CHANGELOG.md` (move Unreleased into a `## [X.Y.Z] - date` section; the release notes are taken from it) and `version` in `Cargo.toml`.
-2. Push a tag `vX.Y.Z`. The workflow attaches `SHPH-Queue-windows.zip` to a GitHub Release.
+2. Push a tag `vX.Y.Z`, or run the `build` workflow on `main` with "release" ticked (it creates the tag from `Cargo.toml`; use this from a Claude session, whose git proxy refuses tag pushes). The workflow attaches `SHPH-Queue-windows.zip` to a GitHub Release with notes from CHANGELOG.
 3. Check the Windows job log for `voice clips: 121` (one per entry in voice_lines.json). A warning there means the zip has no voice files.
 
 Every push also uploads the zip as a 90-day Actions artifact.
