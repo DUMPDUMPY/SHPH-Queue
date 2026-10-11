@@ -491,3 +491,27 @@ def test_logo_upload_rejects_other_files(open_page, tmp_path):
     a.set_input_files("#logoFile", str(bad))
     a.click("#logoUpload")
     expect(a.locator(".toast.error")).to_have_text("ใช้ได้เฉพาะไฟล์ PNG, JPG หรือ WebP")
+
+
+def test_tv_theme_can_be_switched_from_admin(open_page, server):
+    tv = open_page("/display", 1920, 1080)
+    expect(tv.locator("#tv")).to_have_attribute("data-theme", "green")
+    green_head = tv.evaluate("getComputedStyle(document.querySelector('.tv-head')).backgroundImage")
+    a = open_page("/admin")
+    login(a)
+    expect(a.locator("input[name=theme][value=green]")).to_be_checked()
+    a.check("input[name=theme][value=purple]")
+    a.locator("#screen [data-save]").click()
+    expect(tv.locator("#tv")).to_have_attribute("data-theme", "purple")
+    purple_head = tv.evaluate("getComputedStyle(document.querySelector('.tv-head')).backgroundImage")
+    assert green_head == "none" and "gradient" in purple_head
+    assert server.state()["config"]["theme"] == "purple"
+    a.reload()  # still logged in: the settings load straight away
+    expect(a.locator("#app")).to_be_visible()
+    expect(a.locator("input[name=theme][value=purple]")).to_be_checked()
+
+
+def test_theme_preview_link_does_not_change_the_setting(open_page, server):
+    tv = open_page("/display?theme=purple", 1920, 1080)
+    expect(tv.locator("#tv")).to_have_attribute("data-theme", "purple")
+    assert server.state()["config"]["theme"] == "green"

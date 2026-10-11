@@ -155,6 +155,8 @@
 
   let tickerText = null;
   function applyConfig() {
+    // ?theme=purple previews a theme on this screen without saving it.
+    tv.dataset.theme = new URLSearchParams(location.search).get('theme') || cfg.theme || 'green';
     $('logoImg').hidden = !cfg.logo;
     $('logoDefault').toggleAttribute('hidden', !!cfg.logo); // an <svg> has no .hidden property
     if (cfg.logo) {

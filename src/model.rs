@@ -149,6 +149,8 @@ pub struct Config {
     pub media: Vec<MediaItem>,
     /// Uploaded logo, a file name under /media/. None shows the built-in mark.
     pub logo: Option<String>,
+    /// TV colour theme, one of `THEMES`.
+    pub theme: String,
 }
 
 impl Default for Config {
@@ -168,9 +170,13 @@ impl Default for Config {
             image_seconds: 10,
             media: vec![],
             logo: None,
+            theme: THEMES[0].into(),
         }
     }
 }
+
+/// TV themes; each needs a `.tv[data-theme=…]` block in web/display.css (the first is the default).
+pub const THEMES: &[&str] = &["green", "purple"];
 
 impl Config {
     /// Clamp values an admin could set out of range.
@@ -184,6 +190,9 @@ impl Config {
         self.callout_seconds = self.callout_seconds.clamp(2, 30);
         self.image_seconds = self.image_seconds.clamp(3, 600);
         self.held_expire_minutes = self.held_expire_minutes.min(24 * 60);
+        if !THEMES.contains(&self.theme.as_str()) {
+            self.theme = THEMES[0].into();
+        }
         if self.logo.as_deref().is_some_and(|l| l.is_empty() || l.contains(['/', '\\']) || l.starts_with('.')) {
             self.logo = None;
         }

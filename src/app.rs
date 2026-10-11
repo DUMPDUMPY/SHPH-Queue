@@ -252,6 +252,7 @@ fn public_config(c: &Config) -> Value {
         "callout_seconds": c.callout_seconds,
         "image_seconds": c.image_seconds,
         "logo": c.logo,
+        "theme": c.theme,
         "media": c.media.iter().filter(|m| m.enabled).collect::<Vec<_>>(),
     })
 }

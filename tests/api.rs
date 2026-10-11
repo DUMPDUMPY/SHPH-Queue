@@ -758,3 +758,14 @@ fn logo_setting_is_saved_and_checked() {
     let s = s.restart();
     assert!(s.state()["config"]["logo"].is_null());
 }
+
+#[test]
+fn theme_setting_only_accepts_known_themes() {
+    let mut s = Server::start();
+    assert_eq!(s.state()["config"]["theme"], "green");
+    s.login("admin");
+    s.put_config(|c| c["theme"] = json!("purple"));
+    assert_eq!(s.state()["config"]["theme"], "purple");
+    s.put_config(|c| c["theme"] = json!("rainbow"));
+    assert_eq!(s.state()["config"]["theme"], "green");
+}

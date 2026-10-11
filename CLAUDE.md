@@ -22,6 +22,8 @@ The owner talks in Thai. Answer in Thai; keep code, comments and commit messages
 - **Login only on `/admin`.** `/room` and `/manage` are open on the LAN by the owner's choice. `/manage` includes "เริ่มคิวใหม่" behind an in-page confirm.
 - **Voice:** announcements are joined clips ("ขอเชิญหมายเลข" + number + phrase + room number + "ค่ะ"), female voice. Numbers are read as Thai words (12 = สิบสอง, 21 = ยี่สิบเอ็ด, 101 = หนึ่งร้อยเอ็ด). When clips are missing, the display falls back to the browser's Thai TTS.
 - **TV design:** dark green with a saffron call highlight, fonts Bai Jamjuree (numbers, headings) and Anuphan (text), embedded under `web/fonts/`. The approved mockup is the published artifact "จอเรียกคิว รพ.สต.".
+- **Themes:** every TV colour is a CSS token on `.tv` in `web/display.css`; `.tv[data-theme=…]` blocks override them. `green` (default) and `purple` (pink page, glossy magenta cards, gold highlight, after the owner's provincial-office reference). A new theme needs a token block, its name in `THEMES` (src/model.rs) and a radio option in admin.html. `/display?theme=x` previews without saving.
+- **Logo:** uploaded from admin; the browser trims margins, makes outer white paper transparent and scales to 512×512 before upload (`config.logo` is the media file name).
 
 ## Layout
 

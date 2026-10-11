@@ -61,6 +61,7 @@
     document.querySelectorAll('[data-k]').forEach((el) => {
       const v = getPath(C, el.dataset.k);
       if (el.type === 'checkbox') el.checked = !!v;
+      else if (el.type === 'radio') el.checked = el.value === v;
       else el.value = v ?? '';
     });
     $('pharmacyOn').checked = C.pharmacy_enabled;
@@ -70,6 +71,7 @@
     const c = JSON.parse(JSON.stringify(C));
     document.querySelectorAll('[data-k]').forEach((el) => {
       let v;
+      if (el.type === 'radio' && !el.checked) return;
       if (el.type === 'checkbox') v = el.checked;
       else if (el.type === 'number' || el.dataset.type === 'number') v = Number(el.value);
       else v = el.value;
