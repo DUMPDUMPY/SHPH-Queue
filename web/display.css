@@ -83,6 +83,12 @@ html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor
 .card-sub { font-size: var(--sub-size, 24px); color: var(--muted); line-height: 1.5; padding-block: .15em .05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-num { font-family: var(--f-display); font-weight: 700; font-size: var(--num-size, 132px); line-height: 1; font-variant-numeric: tabular-nums; flex: none; }
 .card.idle .card-num { color: var(--line); }
+.card-name.wrap { white-space: normal; text-overflow: clip; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.25; }
+.card.stack { flex-direction: column; align-items: stretch; justify-content: space-between; gap: 0; padding: 8px 24px 6px; }
+.card.stack > div:first-child { width: 100%; }
+.card.stack .card-name { line-height: 1.5; }
+.card.stack .card-sub { display: none; }
+.card.stack .card-num { align-self: flex-end; line-height: .92; }
 .card.pharm { border-color: #2F5E53; }
 .card.hot { background: var(--saffron); color: var(--ink); border-color: var(--saffron); }
 .card.hot .card-sub { color: #0C1D1AB0; }

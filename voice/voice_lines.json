@@ -116,5 +116,8 @@
  "phrase_counter": "ที่ช่องบริการ",
  "phrase_screening": "ที่จุดคัดกรอง",
  "phrase_lab": "ที่ห้องเจาะเลือด",
- "phrase_dental": "ที่ห้องทันตกรรม"
+ "phrase_dental": "ที่ห้องทันตกรรม",
+ "phrase_wound": "ที่ห้องทำแผล",
+ "phrase_promote": "ที่ห้องส่งเสริม",
+ "phrase_promote_health": "ที่ห้องส่งเสริมสุขภาพ"
 }

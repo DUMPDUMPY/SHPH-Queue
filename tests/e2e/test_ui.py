@@ -384,3 +384,33 @@ def test_images_have_no_sound_switch(open_page, tmp_path):
     a.click("#mediaUpload")
     expect(a.locator("#mediaRows tr[data-i]")).to_have_count(1)
     expect(a.locator("#mediaRows [data-m=sound]")).to_have_count(0)
+
+
+def test_long_room_names_fit_when_there_are_many_rooms(open_page, server):
+    server.api("/admin/login", {"password": "admin"})
+    names = ["ห้องทำแผล", "ห้องส่งเสริมสุขภาพ", "ห้องทันตกรรม", "ห้องส่งเสริมสุขภาพและวางแผนครอบครัว"]
+    for name in names:
+        server.api("/admin/rooms", {"name": name, "kind": "exam", "enabled": True, "voice_phrase": "room", "voice_number": None})
+    for rid in [1, 5, 6, 7, 8]:
+        server.api(f"/rooms/{rid}/next", {})
+    tv = open_page("/display", 1920, 1080)
+    expect(tv.locator(".card")).to_have_count(8)
+    tv.wait_for_timeout(500)
+    report = tv.evaluate(
+        """() => [...document.querySelectorAll('.card')].map(c => {
+            const n = c.querySelector('.card-name'), num = c.querySelector('.card-num');
+            const cb = c.getBoundingClientRect(), nb = num.getBoundingClientRect();
+            return {
+                name: n.textContent,
+                cut: n.scrollWidth > n.clientWidth + 1 || n.scrollHeight > n.clientHeight + 1,
+                numInside: nb.left >= cb.left && nb.right <= cb.right && nb.top >= cb.top && nb.bottom <= cb.bottom + 1,
+            };
+        })"""
+    )
+    for r in report:
+        assert not r["cut"], f"{r['name']} is cut off"
+        assert r["numInside"], f"number spills out of the {r['name']} card"
+    for i in range(8):
+        sel = f".card >> nth={i} >> .card-name"
+        if "wrap" not in (tv.locator(sel).get_attribute("class") or ""):
+            assert not _clipped(tv, sel), f"tone marks clipped in card {i}"
